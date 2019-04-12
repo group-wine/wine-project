@@ -1,2 +1,2 @@
-# wine-project
-Repository for Code associated with the wine project
+# sommelieR
+Code for the sommelieR R package
