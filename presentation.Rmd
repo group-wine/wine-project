@@ -35,6 +35,17 @@ library(corrplot)
 library(tidyverse)
 library(kableExtra)
 library(knitr)
+library(devtools)
+
+#install sommelieR
+install_github("group-wine/sommelieR")
+library(sommelieR)
+
+#load the datasets 
+data("red_test")
+data("red_train")
+data("white_test")
+data("white_train")
 
 # Data splitting and merging scripts can be found in Data folder
 
@@ -211,6 +222,111 @@ For variable selection, we examined the correlations between predictors and cons
 * white wine: pH, density, volatile_acidity, residual_sugar, alcohol
 
 ## Results: Linear Model
+
+## Results: Partial Proportional Odds Model (White Wine)
+
+```{r}
+library(psych)
+
+#only 2 quality 9's, so collapsing 
+white_train$quality <- ifelse(white_train$quality == 9, 8, white_train$quality)
+white_test$quality <- ifelse(white_test$quality == 9, 8, white_test$quality)
+
+beta.starts <- coef(lm(quality ~ alcohol+ pH + volatile.acidity + residual.sugar,
+                       data = white_train))
+
+white.partial.prop <- partial.prop.odds.mod(y ="quality", in.data = white_train,
+                              prop.odds.formula = ~ alcohol+ pH + volatile.acidity,
+                              beta.prop.odds.start = beta.starts[2:4],
+                              non.prop.odds.formula = ~ residual.sugar,
+                              beta.non.prop.odds.start = matrix(rep(beta.starts[5], 5), nrow = 1),
+                              method = "BFGS",itnmax = 1000)
+
+#note one case where we get a negative probability prediction 
+white.partial.prop.preds <- predict(white.partial.prop, white_test)
+negative.probs <- apply(white.partial.prop.preds, 1, function(x) any(x <= 0))
+white.partial.prop.preds[negative.probs , ]
+white_test[negative.probs, ]
+
+#take most likely category as the winner 
+white.preds <- apply(white.partial.prop.preds, 1, function(x) c(3:8)[which.max(x)])
+white.obs <- white_test$quality
+table(white.preds, white.obs)
+prop.correct.preds <- sum(white.preds == white.obs)/length(white.obs)
+cohen.kappa(cbind(white.preds, white.obs))
+
+#fully proportional odds 
+white.prop.odds <- partial.prop.odds.mod(y ="quality", in.data = white_train,
+                              prop.odds.formula = ~ alcohol+ pH + volatile.acidity + residual.sugar,
+                              beta.prop.odds.start = beta.starts[2:5],
+                              method = "BFGS", itnmax = 1000)
+white.prop.odds.preds <- predict(white.prop.odds, white_test)
+
+#take most likely category as the winner 
+white.po.preds <- apply(white.prop.odds.preds, 1, function(x) c(3:8)[which.max(x)])
+table(white.po.preds, white.obs)
+prop.po.preds <- sum(white.po.preds == white.obs)/length(white.obs)
+cohen.kappa(cbind(white.po.preds, white.obs))
+
+#library(ordinal)
+#test2 <- clm(factor(quality) ~  alcohol+ pH + volatile.acidity, nominal = ~ residual.sugar,
+#             data = white_train)
+
+
+```
+
+
+## Results: Partial Proportional Odds Model (Red Wine)
+
+```{r}
+
+beta.starts <- coef(lm(quality ~ alcohol+ pH + volatile.acidity + sulphates + total.sulfur.dioxide,
+                       data = red_train))
+
+#partial proportional odds model
+red.parital.prop <- partial.prop.odds.mod(y ="quality", in.data = red_train,
+                              prop.odds.formula = ~ alcohol + pH+ volatile.acidity + sulphates,
+                              beta.prop.odds.start = beta.starts[2:5],
+                              non.prop.odds.formula = ~total.sulfur.dioxide,
+                              beta.non.prop.odds.start = matrix(rep(beta.starts[6], 5), nrow = 1),
+                              method = "BFGS", itnmax = 1000)
+red.partial.preds <- predict(red.parital.prop, red_test)
+red.ppo.winners <-  apply(red.partial.preds, 1, function(x) c(3:8)[which.max(x)])
+red.obs <- red_test$quality
+table(red.ppo.winners, red.obs)
+prop.ppo.correct.preds <- sum(red.ppo.winners == red.obs)/length(red.obs)
+cohen.kappa(cbind(red.ppo.winners, red.obs))
+
+#proportional odds model
+red.prop.odds <- partial.prop.odds.mod(y ="quality", in.data = red_train,
+                              prop.odds.formula = ~ alcohol + pH + volatile.acidity + sulphates
+                              + total.sulfur.dioxide,
+                              beta.prop.odds.start = beta.starts[2:6],
+                              method = "BFGS", itnmax = 1000)
+red.po.preds <- predict(red.prop.odds, red_test)
+red.po.winners <-  apply(red.po.preds, 1, function(x) c(3:8)[which.max(x)])
+table(red.po.winners, red.obs)
+prop.po.correct.preds <- sum(red.po.winners == red.obs)/length(red.obs)
+cohen.kappa(cbind(red.po.winners, red.obs))
+
+#all non-proportional 
+red.non.prop <- partial.prop.odds.mod(y ="quality", in.data = red_train,
+                              non.prop.odds.formula = ~ alcohol + pH+ volatile.acidity + sulphates
+                              + total.sulfur.dioxide,
+                              beta.non.prop.odds.start = matrix(rep(beta.starts[2:6], each = 5), nrow = 5, 
+                                                                byrow = T),
+                              method = "BFGS", itnmax = 1000)
+red.npo.preds <- predict(red.non.prop, red_test)
+red.npo.winners <-  apply(red.npo.preds, 1, function(x) c(3:8)[which.max(x)])
+table(red.npo.winners, red.obs)
+prop.npo.correct.preds <- sum(red.npo.winners == red.obs)/length(red.obs)
+cohen.kappa(cbind(red.npo.winners, red.obs))
+
+
+
+
+```
+
 
 ## Results: Multinomial Model
 
