@@ -23,7 +23,7 @@ white <- read_delim("data/winequality-white.csv", delim = ';') %>%
 red_train_index <- createDataPartition(red$quality, p = .8,
                                        list = F,
                                        times = 1)
-white_train_index <- createDataPartition(red$quality, p = .8,
+white_train_index <- createDataPartition(white$quality, p = .8,
                                          list = F,
                                           times = 1)
 
