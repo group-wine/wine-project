@@ -36,6 +36,7 @@ library(tidyverse)
 library(kableExtra)
 library(knitr)
 library(devtools) 
+library(psych)
 
 #install sommelieR
 install_github("group-wine/sommelieR")
@@ -238,6 +239,69 @@ For variable selection, we examined the correlations between predictors and cons
 
 * $Z = X^T \beta + \epsilon$, where $\epsilon\sim N(0,\sigma^2 I)$
 * $\hat\beta = (X^T X)^{-1}X^T Z$
+
+## Results: Linear Model (red wine quality classification)
+```{r redlinplot, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+lllin = function(color) {
+  if (color=='red') {
+    beta = c('volatile.acidity', 'total.sulfur.dioxide','pH','alcohol','sulphates')
+    test = red_test ; train = red_train
+  } else if (color=='white') {
+    beta = c('volatile.acidity', 'density','pH','alcohol','residual.sugar')
+    test = white_test ; train = white_train
+  }
+  
+  dat = train[,which(names(train)%in% c(beta,'quality'))]
+  fit = linear.mod(dat)
+  betahat = fit$betahat
+  
+  ypred = round(as.matrix(cbind(1,test[,which(names(test)%in% rownames(betahat)[-1])]),nrow=nrow(test)) %*% betahat)
+  result = data.frame(real = test$quality, pred = round(ypred))
+  return(result)
+}
+
+# confusion matrix
+linredresult = linrfac = lllin('red') ; linwhiteresult = linwfac = lllin('white') 
+linrfac$real = factor(linredresult$real)
+linrfac$pred = factor(linredresult$pred, levels=levels(linrfac$real))
+linwfac$real = factor(linwhiteresult$real)
+linwfac$pred = factor(linwhiteresult$pred, levels=levels(linwfac$real))
+
+linredCM = confusionMatrix(data=linrfac$pred, reference=linrfac$real)
+linwhiteCM = confusionMatrix(data=linwfac$pred, reference=linwfac$real)
+
+# classification results (into quality score)
+#cM.red$table
+linrclass <- as.data.frame(linredCM$table)
+linrclass$Freq[linrclass$Freq == 0] <-NA
+
+#cM.white$table
+linwclass <- as.data.frame(linwhiteCM$table)
+linwclass$Freq[linwclass$Freq == 0] <-NA
+
+# For TABLE
+# prediction accuracy by category
+linrpred <- round(diag(linredCM$table)/table(linrfac$real), 4)*100
+linwpred <- round(diag(linwhiteCM$table)/table(linwfac$real), 4)*100
+
+# prediction accuracy and kappa
+linracc = round(linredCM$overall['Accuracy'], 4) * 100
+linwacc = round(linwhiteCM$overall['Accuracy'], 4) * 100
+
+# weighted kappas
+wklin = wkappa(linwhiteCM$table)
+rklin = wkappa(linredCM$table)
+
+# classification results as a plot
+cmPlot(linrclass, "red", pred_first = TRUE,
+       "Linear Model Classification of Quality for Red Wines")
+```
+## Results: Linear Model (white wine quality classification)
+```{r whitelinplot, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+cmPlot(linwclass, "white", pred_first = TRUE,
+      "Linear Model Classification of Quality for White Wines")
+```
+
 
 ## Results: Partial Proportional Odds Model (White Wine)
 
@@ -649,16 +713,18 @@ results.red[1,] <- c(res.red, pred.red, wk.red)
 results.red[2, ] <- red.prop.odds.metrics
 results.red[3, ] <- red.partial.prop.metrics
 results.red[4, ] <- red.non.prop.odds.metrics 
+results.red['Linear Regression', ] <- c(linracc, round(rklin$kappa,4), round(rklin$weighted.kappa,4),linrpred)
 
 
 #-----------------------------------------------------------------------------#
 # WHITE WINE NO GROUPING
-results.white <- setNames(data.frame(matrix(ncol = 10, nrow = 4)),
+results.white <- setNames(data.frame(matrix(ncol = 10, nrow = 6)),
 c("Prediction Accuracy", "Kappa", "Weighted Kappa", "3", "4", "5", "6", "7", "8", "9"))
-rownames(results.white) <- c("Random Forest", "Proportional Odds", "Method 3", "Method 4")
+rownames(results.white) <- c("Random Forest", "Proportional Odds", "Partial Proportional Odds","Non-Proportional Odds", "Multinomial", "Linear Regression")
 
 results.white[1,] <- c(res.white, pred.white, wk.white)
 results.white[2, ] <- white.prop.odds.metrics 
+results.white['Linear Regression', ] <- c(linwacc, round(wklin$kappa,4), round(wklin$weighted.kappa,4),linwpred)
 
 
 #-----------------------------------------------------------------------------#
