@@ -65,8 +65,6 @@ names(white_all) = gsub("\\.", "_", names(white_all))
 
 #--------------------------------------------------------------------#
 # Data set up for RF classification by type code:
-#all_train = fread("./data/training_data/all_train.csv",header=T)
-#all_test = fread("./data/testing_data/all_test.csv",header=T)
 
 # merge data sets, add type indicator
 type <- c(rep("red", dim(red_train)[1]),rep("white", dim(white_train)[1]))
@@ -389,7 +387,7 @@ res <- round(diag(cM$table)/table(y.test), 4)*100 # percent correct into each ty
 #weighted kappa
 wk.type = round(cohen.kappa(cM$table)$weighted.kappa,4)
 
-results.type <- setNames(data.frame(matrix(ncol = 4, nrow = 1)),
+results.type <- setNames(data.frame(matrix(ncol = 5, nrow = 1)),
                             c("Prediction Accuracy", "Kappa","Weighted Kappa", "Red", "White"))
 results.type[1,] <- c(pred,wk.type,res)
 rownames(results.type) = c("Random Forest")
