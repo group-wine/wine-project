@@ -18,7 +18,7 @@ header-includes:
 - \usepackage{threeparttable}
 ---
 
-```{r setup, include=FALSE}
+```{r libraries, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
 # create the datasets for training and testing for the group project
@@ -40,7 +40,9 @@ library(devtools)
 #install sommelieR
 install_github("group-wine/sommelieR")
 library(sommelieR)
+```
 
+```{r setup, include = F}
 #load the datasets 
 data("red_test")
 data("red_train")
@@ -230,7 +232,7 @@ For variable selection, we examined the correlations between predictors and cons
 
 * Non-proportional odds: $logit(P(Z \leq j|x)) = \alpha_j + x^T\beta_j$
 * Proportional odds: $logit(P(Z \leq j|x)) = \alpha_j + x^T\beta$
-* Partial proportional odds: $logit(P(Z \leq j|x)) = \alpha_j + x^T_*\beta + x^T_{**}\beta_j$
+* Partial proportional odds: $logit(P(Z \leq j|x)) = \alpha_j + x^T_*\beta + x^T_{**}\beta_j$ 
 
 ```{r}
 library(psych)
@@ -343,6 +345,12 @@ cmPlot(red.non.prop.odds.table, "red", pred_first = T, title = "Non-Proportional
 
 
 ## Results: Multinomial Model
+
+```{r}
+red_test_fit <- fit_multinomial_regression(red_test, quality ~ 1 + alcohol + volatile.acidity + total.sulfur.dioxide + pH + sulphates, ref_level = "8", trace = 1)
+```
+
+
 
 ## Results: Random Forests (wine type classification)
 ```{r merged.rf, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE}
