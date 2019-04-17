@@ -226,6 +226,9 @@ For variable selection, we examined the correlations between predictors and cons
 
 ## Results: Linear Model
 
+* $Z = X^T \beta + \epsilon$, where $\epsilon\sim N(0,\sigma^2 I)$
+* $\hat\beta = (X^T X)^{-1}X^T Z$
+
 ## Results: Partial Proportional Odds Model (White Wine)
 
 * Non-proportional odds: $logit(P(Z \leq j|x)) = \alpha_j + x^T\beta_j$
