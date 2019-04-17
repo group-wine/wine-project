@@ -228,9 +228,11 @@ For variable selection, we examined the correlations between predictors and cons
 
 ## Results: Partial Proportional Odds Model (White Wine)
 
-* Non-proportional odds: $logit(P(Z \leq j|x)) = \alpha_j + x^T\beta_j$
-* Proportional odds: $logit(P(Z \leq j|x)) = \alpha_j + x^T\beta$
-* Partial proportional odds: $logit(P(Z \leq j|x)) = \alpha_j + x^T_*\beta + x^T_{**}\beta_j$
+* Our package includes functions to implement the following models 
+  + Non-proportional odds: $logit(P(Z \leq j|x)) = \alpha_j + x^T\beta_j$
+  + Proportional odds: $logit(P(Z \leq j|x)) = \alpha_j + x^T\beta$
+  + Partial proportional odds: $logit(P(Z \leq j|x)) = \alpha_j + x^T_*\beta + x^T_{**}\beta_j$
+* Log likelihood maximized using BFGS (default) or any available method in package optimx
 
 ```{r}
 library(psych)
@@ -246,17 +248,24 @@ white.preds <- predict(white.prop.odds, white_test)$most.likely
 
 #compare to actual values  
 white.pred.table <- data.frame(table(factor(white.preds, levels = sort(unique(white.obs))), white.obs))
+white.level.accuracy <- sapply(sort(unique(white.obs)), function(x){
+  
+  target <- white.pred.table[ white.pred.table$white.obs == x, ]
+  total <- sum(target$Freq) 
+  correct <- sum(target$Freq[target$Var1 == target$white.obs])
+  100*correct/total
+  
+})
 white.pred.table$Freq[white.pred.table$Freq == 0] <- NA
 white.pred.accuracy <- sum(white.preds == white.obs)/length(white.obs)
 white.pred.kappa <- cohen.kappa(cbind(white.preds, white.obs))$kappa
 white.pred.wkappa <- cohen.kappa(cbind(white.preds, white.obs))$weighted.kappa
-
 ```
 
-* Only proportional odds model converged 
-* Overall Accuracy: `r round(100*white.pred.accuracy, 2)`%
-* Kappa: `r round(100*white.pred.kappa, 2)`
-* Weighted Kappa: `r round(100*white.pred.wkappa, 2)`
+* For white wine only the proportional odds model converged 
+  + Overall Accuracy: `r round(100*white.pred.accuracy, 2)`%
+  + Kappa: `r round(100*white.pred.kappa, 2)`
+  + Weighted Kappa: `r round(100*white.pred.wkappa, 2)`
 
 ```{r}
 #plotting confusion matrix 
@@ -282,7 +291,16 @@ red.partial.prop <- partial.prop.odds.mod(y ="quality", in.data = red_train,
                               beta.non.prop.odds.start = matrix(rep(beta.starts[6], 5), nrow = 1),
                               method = "BFGS")
 red.partial.prop.preds <- predict(red.partial.prop, red_test)$most.likely
-table(factor(red.partial.prop.preds, levels = sort(unique(red.obs))), red.obs)
+red.partial.prop.preds.table <- data.frame(table(factor(red.partial.prop.preds, levels = sort(unique(red.obs))), red.obs))
+red.partial.prop.level.accuracy <- sapply(sort(unique(red.obs)), function(x){
+  
+  target <- red.partial.prop.preds.table[ red.partial.prop.preds.table$red.obs == x, ]
+  total <- sum(target$Freq) 
+  correct <- sum(target$Freq[target$Var1 == target$red.obs])
+  100*correct/total
+  
+})
+red.partial.prop.preds.table$Freq[red.partial.prop.preds.table$Freq == 0] <- NA
 red.partial.prop.accuracy <- sum(red.partial.prop.preds == red.obs)/length(red.obs)
 red.partial.prop.accuracy
 red.partial.prop.kappa <- cohen.kappa(cbind(red.partial.prop.preds, red.obs))$kappa
@@ -297,6 +315,14 @@ red.prop.odds <- partial.prop.odds.mod(y ="quality", in.data = red_train,
 red.prop.odds.preds <- predict(red.prop.odds, red_test)$most.likely
 
 red.prop.odds.table <- data.frame(table(factor(red.prop.odds.preds, levels = sort(unique(red.obs))), red.obs))
+red.prop.odds.level.accuracy <- sapply(sort(unique(red.obs)), function(x){
+  
+  target <- red.prop.odds.table[ red.prop.odds.table$red.obs == x, ]
+  total <- sum(target$Freq) 
+  correct <- sum(target$Freq[target$Var1 == target$red.obs])
+  100*correct/total
+  
+})
 red.prop.odds.table$Freq[red.prop.odds.table$Freq == 0] <- NA
 red.prop.odds.accuracy <- sum(red.prop.odds.preds == red.obs)/length(red.obs)
 red.prop.odds.kappa <- cohen.kappa(cbind(red.prop.odds.preds, red.obs))$kappa
@@ -314,6 +340,14 @@ red.non.prop.accuracy <- sum(red.non.prop.preds == red.obs)/length(red.obs)
 red.non.prop.kappa <- cohen.kappa(cbind(red.non.prop.preds, red.obs))$kappa
 red.non.prop.wkappa <- cohen.kappa(cbind(red.non.prop.preds, red.obs))$weighted.kappa
 red.non.prop.odds.table <- data.frame(table(factor(red.non.prop.preds, levels = sort(unique(red.obs))), red.obs))
+red.non.prop.level.accuracy <- sapply(sort(unique(red.obs)), function(x){
+  
+  target <- red.non.prop.odds.table[ red.non.prop.odds.table$red.obs == x, ]
+  total <- sum(target$Freq) 
+  correct <- sum(target$Freq[target$Var1 == target$red.obs])
+  100*correct/total
+  
+})
 red.non.prop.odds.table$Freq[red.non.prop.odds.table$Freq == 0] <- NA
 
 #comparison of methods 
@@ -337,6 +371,7 @@ kable(red.partial.prop.model.comp, caption = "Comparison of Partial Proportional
 ```{r}
 #plotting confusion matrix 
 cmPlot(red.prop.odds.table, "red", pred_first = T, title = "Proportional Odds Predicted vs Observed")
+cmPlot(red.partial.prop.preds.table, "red", pred_first = T, title = "Partial Proportional Odds Predicted vs Observed")
 cmPlot(red.non.prop.odds.table, "red", pred_first = T, title = "Non-Proportional Odds Predicted vs Observed")
 
 ```
