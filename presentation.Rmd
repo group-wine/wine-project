@@ -270,15 +270,17 @@ white.level.accuracy <- sapply(sort(unique(white.obs)), function(x){
   
 })
 white.pred.table$Freq[white.pred.table$Freq == 0] <- NA
-white.pred.accuracy <- sum(white.preds == white.obs)/length(white.obs)
+white.pred.accuracy <- 100*sum(white.preds == white.obs)/length(white.obs)
 white.pred.kappa <- cohen.kappa(cbind(white.preds, white.obs))$kappa
 white.pred.wkappa <- cohen.kappa(cbind(white.preds, white.obs))$weighted.kappa
+white.prop.odds.metrics <- c(white.pred.accuracy, white.pred.kappa, white.pred.wkappa,
+                              white.level.accuracy)
 ```
 
-* For white wine only the proportional odds model converged 
-  + Overall Accuracy: `r round(100*white.pred.accuracy, 2)`%
-  + Kappa: `r round(100*white.pred.kappa, 2)`
-  + Weighted Kappa: `r round(100*white.pred.wkappa, 2)`
+* For white wine, only the proportional odds model converged 
+  + Overall Accuracy: `r round(white.pred.accuracy, 2)`%
+  + Kappa: `r round(white.pred.kappa, 2)`
+  + Weighted Kappa: `r round(white.pred.wkappa, 2)`
 
 ```{r}
 #plotting confusion matrix 
@@ -314,10 +316,12 @@ red.partial.prop.level.accuracy <- sapply(sort(unique(red.obs)), function(x){
   
 })
 red.partial.prop.preds.table$Freq[red.partial.prop.preds.table$Freq == 0] <- NA
-red.partial.prop.accuracy <- sum(red.partial.prop.preds == red.obs)/length(red.obs)
-red.partial.prop.accuracy
+red.partial.prop.accuracy <- 100*sum(red.partial.prop.preds == red.obs)/length(red.obs)
 red.partial.prop.kappa <- cohen.kappa(cbind(red.partial.prop.preds, red.obs))$kappa
 red.partial.prop.wkappa <- cohen.kappa(cbind(red.partial.prop.preds, red.obs))$weighted.kappa
+red.partial.prop.metrics <- c(red.partial.prop.accuracy, red.partial.prop.kappa, red.partial.prop.wkappa,
+                              red.partial.prop.level.accuracy)
+
 
 #proportional odds model
 red.prop.odds <- partial.prop.odds.mod(y ="quality", in.data = red_train,
@@ -337,9 +341,10 @@ red.prop.odds.level.accuracy <- sapply(sort(unique(red.obs)), function(x){
   
 })
 red.prop.odds.table$Freq[red.prop.odds.table$Freq == 0] <- NA
-red.prop.odds.accuracy <- sum(red.prop.odds.preds == red.obs)/length(red.obs)
+red.prop.odds.accuracy <- 100*sum(red.prop.odds.preds == red.obs)/length(red.obs)
 red.prop.odds.kappa <- cohen.kappa(cbind(red.prop.odds.preds, red.obs))$kappa
 red.prop.odds.wkappa <- cohen.kappa(cbind(red.prop.odds.preds, red.obs))$weighted.kappa
+red.prop.odds.metrics <- c(red.prop.odds.accuracy, red.prop.odds.kappa, red.prop.odds.wkappa, red.prop.odds.level.accuracy)
 
 #all non-proportional 
 red.non.prop <- partial.prop.odds.mod(y ="quality", in.data = red_train,
@@ -349,7 +354,7 @@ red.non.prop <- partial.prop.odds.mod(y ="quality", in.data = red_train,
                                                                 byrow = T),
                               method = "BFGS")
 red.non.prop.preds <- predict(red.non.prop, red_test)$most.likely
-red.non.prop.accuracy <- sum(red.non.prop.preds == red.obs)/length(red.obs)
+red.non.prop.accuracy <- 100*sum(red.non.prop.preds == red.obs)/length(red.obs)
 red.non.prop.kappa <- cohen.kappa(cbind(red.non.prop.preds, red.obs))$kappa
 red.non.prop.wkappa <- cohen.kappa(cbind(red.non.prop.preds, red.obs))$weighted.kappa
 red.non.prop.odds.table <- data.frame(table(factor(red.non.prop.preds, levels = sort(unique(red.obs))), red.obs))
@@ -362,6 +367,7 @@ red.non.prop.level.accuracy <- sapply(sort(unique(red.obs)), function(x){
   
 })
 red.non.prop.odds.table$Freq[red.non.prop.odds.table$Freq == 0] <- NA
+red.non.prop.odds.metrics <- c(red.non.prop.accuracy, red.non.prop.kappa, red.non.prop.wkappa, red.non.prop.level.accuracy)
 
 #comparison of methods 
 red.partial.prop.model.comp <- data.frame(Model = c("Proportional Odds", "Partial Proportional Odds",
@@ -634,20 +640,25 @@ library(knitr)
 library(kableExtra)
 #-----------------------------------------------------------------------------#
 # RED WINE NO GROUPING
-results.red <- setNames(data.frame(matrix(ncol = 9, nrow = 4)),
+results.red <- setNames(data.frame(matrix(ncol = 9, nrow = 6)),
 c("Prediction Accuracy", "Kappa", "Weighted Kappa", "3", "4", "5", "6", "7", "8"))
-rownames(results.red) <- c("Random Forest", "Method 2", "Method 3", "Method 4")
+rownames(results.red) <- c("Random Forest", "Proportional Odds", "Partial Proportional Odds",
+                           "Non-Proportional Odds", "Multinomial", "Linear Regression")
 
 results.red[1,] <- c(res.red, pred.red, wk.red)
+results.red[2, ] <- red.prop.odds.metrics
+results.red[3, ] <- red.partial.prop.metrics
+results.red[4, ] <- red.non.prop.odds.metrics 
 
 
 #-----------------------------------------------------------------------------#
 # WHITE WINE NO GROUPING
 results.white <- setNames(data.frame(matrix(ncol = 10, nrow = 4)),
 c("Prediction Accuracy", "Kappa", "Weighted Kappa", "3", "4", "5", "6", "7", "8", "9"))
-rownames(results.white) <- c("Random Forest", "Method 2", "Method 3", "Method 4")
+rownames(results.white) <- c("Random Forest", "Proportional Odds", "Method 3", "Method 4")
 
 results.white[1,] <- c(res.white, pred.white, wk.white)
+results.white[2, ] <- white.prop.odds.metrics 
 
 
 #-----------------------------------------------------------------------------#
