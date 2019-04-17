@@ -314,6 +314,7 @@ red.partial.prop.model.comp <- data.frame(Model = c("Proportional Odds", "Partia
                                                        red.non.prop.kappa),
                                           Weighted.Kappa = c(red.prop.odds.wkappa, red.partial.prop.wkappa, 
                                                        red.non.prop.wkappa)) 
+colnames(red.partial.prop.model.comp) <- c("Model", "Accuracy", "Kappa", "Weighted Kappa")
 kable(red.partial.prop.model.comp, caption = "Comparison of Partial Proportional Odds Models for Red Wine Quality",
       digits = 4, booktabs=T)
 ```
