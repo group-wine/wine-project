@@ -46,6 +46,9 @@ data("red_test")
 data("red_train")
 data("white_test")
 data("white_train")
+data("all_test")
+data("all_train")
+
 white.obs <- white_test$quality
 red.obs <- red_test$quality
 
@@ -54,18 +57,20 @@ red.obs <- red_test$quality
 
 #--------------------------------------------------------------------#
 # Data set up for boxplot code:
-red_all =  fread("./data/winequality-red.csv",header=T)
+#red_all =  fread("./data/winequality-red.csv",header=T)
+red_all = rbind(red_test, red_train)
 red_all$quality <- as.factor(red_all$quality)
-names(red_all) = gsub(" ", "_", names(red_all))
+names(red_all) = gsub("\\.", "_", names(red_all))
 
-white_all =  fread("./data/winequality-white.csv",header=T)
+#white_all =  fread("./data/winequality-white.csv",header=T)
+white_all = rbind(white_test, white_train)
 white_all$quality <- as.factor(white_all$quality)
-names(white_all) = gsub(" ", "_", names(white_all))
+names(white_all) = gsub("\\.", "_", names(white_all))
 
 #--------------------------------------------------------------------#
 # Data set up for RF classification by type code:
-all_train = fread("./data/training_data/all_train.csv",header=T)
-all_test = fread("./data/testing_data/all_test.csv",header=T)
+#all_train = fread("./data/training_data/all_train.csv",header=T)
+#all_test = fread("./data/testing_data/all_test.csv",header=T)
 
 x.train = as.data.frame(all_train[,1:11], ncol=11)
 y.train = factor(all_train$type)
