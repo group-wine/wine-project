@@ -427,7 +427,13 @@ pred.white <- round(diag(cM.white$table)/table(y.test.white), 4)*100
 
 # prediction accuracy and kappa
 res.red = round(cM.red$overall[1:2], 4)
+res.red[1] = res.red[1]*100
 res.white = round(cM.white$overall[1:2], 4) 
+res.white[1] = res.white[1]*100
+
+# weighted kappas
+wk.red <- round(cohen.kappa(cM.red$table)$weighted.kappa, 4)
+wk.white <- round(cohen.kappa(cM.white$table)$weighted.kappa, 4)
 ```
 
 ## Results: Random Forests (white wine quality classification)
@@ -475,7 +481,13 @@ pred.white.grp <- round(diag(cM.white.grp$table)/table(y.test.white.grp), 4)*100
 
 # prediction accuracy and kappa
 res.red.grp = round(cM.red.grp$overall[1:2], 4)
+res.red.grp[1] = res.red.grp[1]*100
 res.white.grp = round(cM.white.grp$overall[1:2], 4)
+res.white.grp[1] = res.white.grp[1]*100
+
+# weighted kappas
+wk.red.grp <- round(cohen.kappa(cM.red.grp$table)$weighted.kappa, 4)
+wk.white.grp <- round(cohen.kappa(cM.white.grp$table)$weighted.kappa, 4)
 ```
 ## Results: Random Forests (grouped white wine quality classification)
 ```{r white.rf.grouped,echo=FALSE, message=FALSE, warning=FALSE}
@@ -535,7 +547,13 @@ pred.white.grp.ss <- round(diag(cM.white.grp.ss$table)/table(y.test.white.grp), 
 
 # prediction accuracy and kappa
 res.red.grp.ss <- round(cM.red.grp.ss$overall[1:2],4)
+res.red.grp.ss[1] = res.red.grp.ss[1]*100
 res.white.grp.ss <- round(cM.white.grp.ss$overall[1:2],4)
+res.white.grp.ss[1] = res.white.grp.ss[1]*100
+
+# weighted kappas
+wk.red.grp.ss <- round(cohen.kappa(cM.red.grp.ss$table)$weighted.kappa, 4)
+wk.white.grp.ss <- round(cohen.kappa(cM.white.grp.ss$table)$weighted.kappa, 4)
 
 ```
 
@@ -558,48 +576,48 @@ library(knitr)
 library(kableExtra)
 #-----------------------------------------------------------------------------#
 # RED WINE NO GROUPING
-results.red <- setNames(data.frame(matrix(ncol = 8, nrow = 4)),
-c("Prediction Accuracy", "Kappa", "3", "4", "5", "6", "7", "8"))
+results.red <- setNames(data.frame(matrix(ncol = 9, nrow = 4)),
+c("Prediction Accuracy", "Kappa", "Weighted Kappa", "3", "4", "5", "6", "7", "8"))
 rownames(results.red) <- c("Random Forest", "Method 2", "Method 3", "Method 4")
 
-results.red[1,] <- c(res.red, pred.red)
+results.red[1,] <- c(res.red, pred.red, wk.red)
 
 
 #-----------------------------------------------------------------------------#
 # WHITE WINE NO GROUPING
-results.white <- setNames(data.frame(matrix(ncol = 9, nrow = 4)),
-c("Prediction Accuracy", "Kappa", "3", "4", "5", "6", "7", "8", "9"))
+results.white <- setNames(data.frame(matrix(ncol = 10, nrow = 4)),
+c("Prediction Accuracy", "Kappa", "Weighted Kappa", "3", "4", "5", "6", "7", "8", "9"))
 rownames(results.white) <- c("Random Forest", "Method 2", "Method 3", "Method 4")
 
-results.white[1,] <- c(res.white, pred.white)
+results.white[1,] <- c(res.white, pred.white, wk.white)
 
 
 #-----------------------------------------------------------------------------#
 # RED WINE WITH GROUPING
-results.red.grp <- setNames(data.frame(matrix(ncol = 5, nrow = 5)),
-c("Prediction Accuracy", "Kappa", "Low", "Mid", "High"))
+results.red.grp <- setNames(data.frame(matrix(ncol = 6, nrow = 5)),
+c("Prediction Accuracy", "Kappa", "Weighted Kappa", "Low", "Mid", "High"))
 rownames(results.red.grp) <- c("Random Forest", "RF Subsampled",
 "Method 3", "Method 4", "Method 5")
 
-results.red.grp[1,] <- c(res.red.grp, pred.red.grp)
-results.red.grp[2,] <- c(res.red.grp.ss, pred.red.grp.ss)
+results.red.grp[1,] <- c(res.red.grp, pred.red.grp, wk.red.grp)
+results.red.grp[2,] <- c(res.red.grp.ss, pred.red.grp.ss, wk.red.grp.ss)
 
 
 #-----------------------------------------------------------------------------#
 # WHITE WINE WITH GROUPING
-results.white.grp <- setNames(data.frame(matrix(ncol = 5, nrow = 5)),
-c("Prediction Accuracy", "Kappa", "Low", "Mid", "High"))
+results.white.grp <- setNames(data.frame(matrix(ncol = 6, nrow = 5)),
+c("Prediction Accuracy", "Kappa", "Weighted Kappa", "Low", "Mid", "High"))
 rownames(results.white.grp) <- c("Random Forest", "RF Subsampled",
 "Method 3", "Method 4", "Method 5")
 
-results.white.grp[1,] <- c(res.white.grp, pred.white.grp)
-results.white.grp[2,] <- c(res.white.grp.ss, pred.white.grp.ss)
+results.white.grp[1,] <- c(res.white.grp, pred.white.grp, wk.white.grp)
+results.white.grp[2,] <- c(res.white.grp.ss, pred.white.grp.ss, wk.white.grp.ss)
 
 #-----------------------------------------------------------------------------#
 # Print out comparison tables created above
 # Red wine no groups
 kable(results.red, caption = "Comparison of Results for Red Wine", booktabs=T) %>%
-add_header_above(c(" ", "Overall Results" = 2, "Percent Correct by Category" = 6)) %>%
+add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 6)) %>%
 kable_styling(latex_options = c("repeat_header", "scale_down"))
 
 #-----------------------------------------------------------------------------#
@@ -611,7 +629,7 @@ kable_styling(latex_options = c("repeat_header", "scale_down"))
 
 # White wine no groups
 kable(results.white, caption = "Comparison of Results for White Wine", booktabs=T) %>%
-add_header_above(c(" ", "Overall Results" = 2, "Percent Correct by Category" = 7)) %>%
+add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 7)) %>%
 kable_styling(latex_options = c("repeat_header", "scale_down"))
 ```
 
@@ -619,7 +637,7 @@ kable_styling(latex_options = c("repeat_header", "scale_down"))
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 # Red wine grouped
 kable(results.red.grp, caption = "Comparison of Results for Red Wine with Grouped Quality", booktabs=T) %>%
-add_header_above(c(" ", "Overall Results" = 2, "Percent Correct by Category" = 3)) %>%
+add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 3)) %>%
 kable_styling(latex_options = c("repeat_header", "scale_down"))
 ```
 
@@ -627,7 +645,7 @@ kable_styling(latex_options = c("repeat_header", "scale_down"))
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 # White wine grouped
 kable(results.white.grp, caption = "Comparison of Results for White Wine with Grouped Quality", booktabs=T) %>%
-add_header_above(c(" ", "Overall Results" = 2, "Percent Correct by Category" = 3)) %>%
+add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 3)) %>%
 kable_styling(latex_options = c("repeat_header", "scale_down"))
 ```
 
