@@ -46,23 +46,17 @@ data("red_test")
 data("red_train")
 data("white_test")
 data("white_train")
-data("all_test")
-data("all_train")
 
 white.obs <- white_test$quality
 red.obs <- red_test$quality
 
 
-# Data splitting and merging scripts can be found in Data folder
-
 #--------------------------------------------------------------------#
 # Data set up for boxplot code:
-#red_all =  fread("./data/winequality-red.csv",header=T)
 red_all = rbind(red_test, red_train)
 red_all$quality <- as.factor(red_all$quality)
 names(red_all) = gsub("\\.", "_", names(red_all))
 
-#white_all =  fread("./data/winequality-white.csv",header=T)
 white_all = rbind(white_test, white_train)
 white_all$quality <- as.factor(white_all$quality)
 names(white_all) = gsub("\\.", "_", names(white_all))
@@ -72,6 +66,23 @@ names(white_all) = gsub("\\.", "_", names(white_all))
 #all_train = fread("./data/training_data/all_train.csv",header=T)
 #all_test = fread("./data/testing_data/all_test.csv",header=T)
 
+# merge data sets, add type indicator
+type <- c(rep("red", dim(red_train)[1]),rep("white", dim(white_train)[1]))
+all_train_a <- rbind(red_train, white_train)
+all_train <- cbind(all_train_a, type)
+
+type2 <- c(rep("red", dim(red_test)[1]),rep("white", dim(white_test)[1]))
+all_test_a <- rbind(red_test, white_test)
+all_test <- cbind(all_test_a, type2)
+
+# convert type and quality to factor
+all_train$type <- as.factor(all_train$type)
+all_train$quality <- as.factor(all_train$quality)
+
+all_test$type <- as.factor(all_test$type)
+all_test$quality <- as.factor(all_test$quality)
+
+
 x.train = as.data.frame(all_train[,1:11], ncol=11)
 y.train = factor(all_train$type)
 
@@ -80,13 +91,7 @@ y.test = factor(all_test$type)
 
 #--------------------------------------------------------------------#
 # Data set up for RF classification by quality code:
-source("./R/cmPlot_function.R") # required to plot CMs
-
-# red_train = fread("./data/training_data/red_train.csv",header=T)
-# red_test = fread("./data/testing_data/red_test.csv",header=T)
-# 
-# white_train = fread("./data/training_data/white_train.csv",header=T)
-# white_test = fread("./data/testing_data/white_test.csv",header=T)
+#source("./R/cmPlot_function.R") # required to plot CMs
 
 x.train.red = as.data.frame(red_train[,1:11], ncol=11)
 y.train.red = factor(red_train$quality)
@@ -370,15 +375,19 @@ cM = confusionMatrix(data=y.pred, reference=y.test)
 # classification results (red vs white)
 #cM$table
 pred <- round(cM$overall[1:2], 4) # prediction accuracy and kappa
+pred[1] <- pred[1]*100
 res <- round(diag(cM$table)/table(y.test), 4)*100 # percent correct into each type
 
+#weighted kappa
+wk.type = round(cohen.kappa(cM$table)$weighted.kappa,4)
+
 results.type <- setNames(data.frame(matrix(ncol = 4, nrow = 1)),
-                            c("Prediction Accuracy", "Kappa", "Red", "White"))
-results.type[1,] <- c(pred,res)
+                            c("Prediction Accuracy", "Kappa","Weighted Kappa", "Red", "White"))
+results.type[1,] <- c(pred,wk.type,res)
 rownames(results.type) = c("Random Forest")
 
 kable(results.type, caption = "Classification Results for Wine Type", booktabs=T) %>%
-  add_header_above(c(" ", "Overall Results" = 2, "Percent Correct by Category" = 2)) %>%
+  add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 2)) %>%
   kable_styling(latex_options = c("repeat_header", "scale_down"))
 ```
 
