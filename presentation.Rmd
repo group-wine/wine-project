@@ -347,7 +347,7 @@ cmPlot(red.non.prop.odds.table, "red", pred_first = T, title = "Non-Proportional
 ## Results: Multinomial Model
 
 ```{r}
-red_test_fit <- fit_multinomial_regression(red_test, quality ~ 1 + alcohol + volatile.acidity + total.sulfur.dioxide + pH + sulphates, ref_level = "8", trace = 1)
+red_test_fit <- fit_multinomial_regression(red_test, quality ~ 1 + alcohol + volatile.acidity + total.sulfur.dioxide + pH + sulphates, ref_level = "8", trace = 1, itters = 300)
 ```
 
 
