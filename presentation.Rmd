@@ -77,11 +77,11 @@ y.test = factor(all_test$type)
 # Data set up for RF classification by quality code:
 source("./R/cmPlot_function.R") # required to plot CMs
 
-red_train = fread("./data/training_data/red_train.csv",header=T)
-red_test = fread("./data/testing_data/red_test.csv",header=T)
-
-white_train = fread("./data/training_data/white_train.csv",header=T)
-white_test = fread("./data/testing_data/white_test.csv",header=T)
+# red_train = fread("./data/training_data/red_train.csv",header=T)
+# red_test = fread("./data/testing_data/red_test.csv",header=T)
+# 
+# white_train = fread("./data/training_data/white_train.csv",header=T)
+# white_test = fread("./data/testing_data/white_test.csv",header=T)
 
 x.train.red = as.data.frame(red_train[,1:11], ncol=11)
 y.train.red = factor(red_train$quality)
@@ -345,8 +345,6 @@ cmPlot(red.non.prop.odds.table, "red", pred_first = T, title = "Non-Proportional
 ## Results: Multinomial Model
 
 ## Results: Random Forests (wine type classification)
-First, we merge the white and red wine datasets and use random forests to try to classify the wines into red or white
-
 ```{r merged.rf, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE}
 # train random forest
 trCtl <- trainControl(savePredictions=TRUE)
@@ -389,7 +387,6 @@ ggplot(class.table, aes(x = Reference, y = Prediction, size = Freq, fill=Freq, l
 
 
 ## Results: Random Forests (red wine quality classification)
-Next, we use random forests to classify each wine's wine quality score. We have 7 categories (scores 3-9) and we do this separately for the red and white wines.
 ```{r red.rf, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE}
 source("./R/cmPlot_function.R") # required to plot CMs
 # train random forest
@@ -440,7 +437,6 @@ cmPlot(class.white, "white", pred_first = TRUE,
 ```
 
 ## Results: Random Forests (grouped red wine quality classification)
-We now group wine quality into three categories: low (scores 3-4), medium (5-6), high (7-9), and try to classify the wines into these three categories.
 ```{r red.rf.grouped, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE}
 # train random forest
 fit.red.grp <- train(x.train.red, y.train.red.grp, method="rf", trControl=trCtl)
@@ -488,8 +484,6 @@ cmPlot(class.white.grp, "white", pred_first = TRUE,
 ```
 
 ## Results: Random Forests with Subsampling (grouped red wine quality classification)
-We now perform the same grouped classification, but with subsampling to balance the groups.
-
 ```{r red.rf.grouped.ss,echo=FALSE, message=FALSE, warning=FALSE}
 # subsmaple training data based on minimum within group count
 train.red.grp <- cbind(x.train.red, y.train.red.grp)
