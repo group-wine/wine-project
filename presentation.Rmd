@@ -35,7 +35,7 @@ library(corrplot)
 library(tidyverse)
 library(kableExtra)
 library(knitr)
-library(devtools)
+library(devtools) 
 
 #install sommelieR
 install_github("group-wine/sommelieR")
