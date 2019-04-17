@@ -245,7 +245,8 @@ white.prop.odds <- partial.prop.odds.mod(y ="quality", in.data = white_train,
 white.preds <- predict(white.prop.odds, white_test)$most.likely
 
 #compare to actual values  
-table(factor(white.preds, levels = sort(unique(white.obs))), white.obs)
+white.pred.table <- data.frame(table(factor(white.preds, levels = sort(unique(white.obs))), white.obs))
+white.pred.table$Freq[white.pred.table$Freq == 0] <- NA
 white.pred.accuracy <- sum(white.preds == white.obs)/length(white.obs)
 white.pred.kappa <- cohen.kappa(cbind(white.preds, white.obs))$kappa
 white.pred.wkappa <- cohen.kappa(cbind(white.preds, white.obs))$weighted.kappa
@@ -256,6 +257,12 @@ white.pred.wkappa <- cohen.kappa(cbind(white.preds, white.obs))$weighted.kappa
 * Overall Accuracy: `r round(100*white.pred.accuracy, 2)`%
 * Kappa: `r round(100*white.pred.kappa, 2)`
 * Weighted Kappa: `r round(100*white.pred.wkappa, 2)`
+
+```{r}
+#plotting confusion matrix 
+cmPlot(white.pred.table, "white", pred_first = T, title = "Proportional Odds Model Predicted vs Observed")
+
+```
 
 ## Results: Partial Proportional Odds Model (Red Wine)
 
@@ -288,7 +295,9 @@ red.prop.odds <- partial.prop.odds.mod(y ="quality", in.data = red_train,
                               beta.prop.odds.start = beta.starts[2:6],
                               method = "BFGS")
 red.prop.odds.preds <- predict(red.prop.odds, red_test)$most.likely
-table(factor(red.prop.odds.preds, levels = sort(unique(red.obs))), red.obs)
+
+red.prop.odds.table <- data.frame(table(factor(red.prop.odds.preds, levels = sort(unique(red.obs))), red.obs))
+red.prop.odds.table$Freq[red.prop.odds.table$Freq == 0] <- NA
 red.prop.odds.accuracy <- sum(red.prop.odds.preds == red.obs)/length(red.obs)
 red.prop.odds.kappa <- cohen.kappa(cbind(red.prop.odds.preds, red.obs))$kappa
 red.prop.odds.wkappa <- cohen.kappa(cbind(red.prop.odds.preds, red.obs))$weighted.kappa
@@ -304,6 +313,8 @@ red.non.prop.preds <- predict(red.non.prop, red_test)$most.likely
 red.non.prop.accuracy <- sum(red.non.prop.preds == red.obs)/length(red.obs)
 red.non.prop.kappa <- cohen.kappa(cbind(red.non.prop.preds, red.obs))$kappa
 red.non.prop.wkappa <- cohen.kappa(cbind(red.non.prop.preds, red.obs))$weighted.kappa
+red.non.prop.odds.table <- data.frame(table(factor(red.non.prop.preds, levels = sort(unique(red.obs))), red.obs))
+red.non.prop.odds.table$Freq[red.non.prop.odds.table$Freq == 0] <- NA
 
 #comparison of methods 
 red.partial.prop.model.comp <- data.frame(Model = c("Proportional Odds", "Partial Proportional Odds",
@@ -322,6 +333,14 @@ kable(red.partial.prop.model.comp, caption = "Comparison of Partial Proportional
 * Results are similar across models 
 * Overall Accuracy is best for non-proportional odds
 * Weighted kappa best for proportional odds model 
+
+```{r}
+#plotting confusion matrix 
+cmPlot(red.prop.odds.table, "red", pred_first = T, title = "Proportional Odds Predicted vs Observed")
+cmPlot(red.non.prop.odds.table, "red", pred_first = T, title = "Non-Proportional Odds Predicted vs Observed")
+
+```
+
 
 ## Results: Multinomial Model
 
