@@ -35,7 +35,7 @@ library(corrplot)
 library(tidyverse)
 library(kableExtra)
 library(knitr)
-library(devtools)
+library(devtools) 
 
 #install sommelieR
 install_github("group-wine/sommelieR")
@@ -230,6 +230,9 @@ For variable selection, we examined the correlations between predictors and cons
 * white wine: pH, density, volatile_acidity, residual_sugar, alcohol
 
 ## Results: Linear Model
+
+* $Z = X^T \beta + \epsilon$, where $\epsilon\sim N(0,\sigma^2 I)$
+* $\hat\beta = (X^T X)^{-1}X^T Z$
 
 ## Results: Partial Proportional Odds Model (White Wine)
 
