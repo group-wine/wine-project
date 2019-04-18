@@ -247,7 +247,7 @@ For variable selection, we examined the correlations between predictors and cons
   + Partial proportional odds: $logit(P(Z \leq j|x)) = \alpha_j + x^T_*\beta + x^T_{**}\beta_j$
 * Log likelihood maximized using BFGS (default) or any available method in package optimx
 
-```{r}
+```{r, echo=F, warning=F, message = F}
 library(psych)
 beta.starts <- coef(lm(quality ~ alcohol+ pH + volatile.acidity + residual.sugar,
                        data = white_train))
@@ -279,10 +279,12 @@ white.prop.odds.metrics <- c(white.pred.accuracy, white.pred.kappa, white.pred.w
 
 * For white wine, only the proportional odds model converged 
   + Overall Accuracy: `r round(white.pred.accuracy, 2)`%
-  + Kappa: `r round(white.pred.kappa, 2)`
-  + Weighted Kappa: `r round(white.pred.wkappa, 2)`
+  + Kappa: `r round(white.pred.kappa, 4)`
+  + Weighted Kappa: `r round(white.pred.wkappa, 4)`
 
-```{r}
+## Results: Partial Proportional Odds Model (White Wine)
+
+```{r, echo=F, warning=F, message=F}
 #plotting confusion matrix 
 cmPlot(white.pred.table, "white", pred_first = T, title = "Proportional Odds Model Predicted vs Observed")
 
@@ -293,7 +295,7 @@ cmPlot(white.pred.table, "white", pred_first = T, title = "Proportional Odds Mod
 * Proportional, partial proportional, and and non-proportional odds models all converged
 * Results presented for partial proportional model with coefficient for total sulfur dioxide allowed to vary with the level of wine quality
 
-```{r}
+```{r,echo=F, warning=F, message = F}
 
 beta.starts <- coef(lm(quality ~ alcohol+ pH + volatile.acidity + sulphates + total.sulfur.dioxide,
                        data = red_train))
@@ -387,18 +389,29 @@ kable(red.partial.prop.model.comp, caption = "Comparison of Partial Proportional
 * Overall Accuracy is best for non-proportional odds
 * Weighted kappa best for proportional odds model 
 
-```{r}
+## Results: Partial Proportional Odds Model (Red Wine)
+
+```{r, echo=F, warning=F, message = F}
 #plotting confusion matrix 
 cmPlot(red.prop.odds.table, "red", pred_first = T, title = "Proportional Odds Predicted vs Observed")
-cmPlot(red.partial.prop.preds.table, "red", pred_first = T, title = "Partial Proportional Odds Predicted vs Observed")
-cmPlot(red.non.prop.odds.table, "red", pred_first = T, title = "Non-Proportional Odds Predicted vs Observed")
+```
 
+## Results: Partial Proportional Odds Model (Red Wine)
+
+```{r, echo=F, warning=F, message = F}
+cmPlot(red.partial.prop.preds.table, "red", pred_first = T, title = "Partial Proportional Odds Predicted vs Observed")
+```
+
+## Results: Partial Proportional Odds Model (Red Wine)
+
+```{r, echo=F, warning=F, message = F}
+cmPlot(red.non.prop.odds.table, "red", pred_first = T, title = "Non-Proportional Odds Predicted vs Observed")
 ```
 
 
 ## Results: Multinomial Model
 
-```{r}
+```{r, message = F}
 red_test_fit <- fit_multinomial_regression(red_test, quality ~ 1 + alcohol + volatile.acidity + total.sulfur.dioxide + pH + sulphates, ref_level = "8", trace = 1, itters = 300)
 ```
 
