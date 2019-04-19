@@ -133,17 +133,29 @@ levels(y.test.white.grp)[3:5] <- "high"
 ```
 
 ## Introduction
-* 2 datasets related to red and white Vinho Verde wines
-* each contain 11 physiochemical variables
-    + fixed acidity, volatile acidity, citric acid, residual sugar, chlorides, free sulfur dioxide, total sulfur dioxide, density, pH, sulphates, alcohol
-* 6,493 observations
-* outcome variable: wine quality
-    + ordinal variable ranging from 0-10
-    + 0 is poor, 10 is excellent 
-    + classes are unbalanced
+
+* Wine tasting can range range from a casual pastime to a lucrative profession
+* For professional sommeliers, considerable time and training is required to adequately rate wine quality 
+* Intuitively, we might expect expert ratings to reflect the underlying chemical composition of the wines 
+* We decided to more formally investigate this idea 
 
 ## Project Aim
-Is it possible to predict wine quality using some subset of the physiochemical variables?
+
+To determine how accurately we can predict expert wine quality ratings using a set of easily measured chemical components of the wine.
+
+## Data
+
+* 2 datasets of  expert quality ratings of red and white Vinho Verde wines 
+  + source: http://archive.ics.uci.edu/ml/datasets/wine+quality
+  + `nrow(red_test) + nrow(red_train)` red wines 
+  + `nrow(white_test) + nrow(white_train)` white wines 
+* Outcome variable: wine quality
+    + ordinal variable theoretically ranging from 0-10
+      - Observed ratings range from 3-9 
+    + 0 is poor, 10 is excellent 
+    + classes are unbalanced
+* Predictor variables: 11 physiochemical wine components:
+    + fixed acidity, volatile acidity, citric acid, residual sugar, chlorides, free sulfur dioxide, total sulfur dioxide, density, pH, sulphates, alcohol
 
 ## Looking At the Red Wine Data
 ```{r red.boxplots, echo=FALSE, warning=FALSE}
@@ -224,22 +236,64 @@ corrplot(rcor_white$r, type="upper", order="hclust", tl.col = "black",
 ```
 
 ## Methods
-* linear model
-* partial proportional odds model
-* multinomial model
-* random forests
 
-## Variable Selection
-For variable selection, we examined the correlations between predictors and considered best subsets found in R. For the likelihood based models, we included the following predictors:
-  
-  * red wine: volatile acidity, total sulfur dioxide, pH, alcohol, sulphates
-* white wine: pH, density, volatile_acidity, residual_sugar, alcohol
+* The red and white wine datasets were split into training and testing sets
+  + 80% of the available data sampled for training models
+  + Remaining 20% used to evaluate the accuracy of the trained models
+  + Relative frequencies of quality ratings in the full data were preserved in the training and testing data 
+* Modeling Approach
+  + Machine learning
+    - Random forest classification of quality ratings 
+  + Likelihood based 
+    - linear regression 
+    - partial proportional odds model 
+    - multinomial model 
+    
+## Methods: Random Forest
 
-## Results: Linear Model
+* Something here describing the random forest approach
+
+## Methods: Linear Regression 
 
 * $Z = X^T \beta + \epsilon$, where $\epsilon\sim N(0,\sigma^2 I)$
 * $\hat\beta = (X^T X)^{-1}X^T Z$
+* Predicted classification: The nearest integer to the predicted mean rating 
 
+## Methods: Partial Proportional Odds Models 
+
+Three different approaches were considered:
+
+* Non-proportional odds: $logit(P(Z \leq j|x)) = \alpha_j + x^T\beta_j$
+* Proportional odds: $logit(P(Z \leq j|x)) = \alpha_j + x^T\beta$
+* Partial proportional odds: $logit(P(Z \leq j|x)) = \alpha_j + x^T_*\beta + x^T_{**}\beta_j$
+* Log likelihood maximized using BFGS (default) or any available method in package optimx
+* Predicted classification: the rating with the highest predicted probability
+
+## Methods: Partial Proportional Odds Models 
+
+* model likelihood: 
+* Predicted classification: the rating with the highest predicted probability
+
+## Variable Selection
+
+* All physiochemical variables were included as potential predictors in random forest models 
+* Likelihood based models:
+  + We examined the correlations between predictors and considered best subsets found in R based on linear regression.
+  + The final predictor variables selected were:
+    - red wine: volatile acidity, total sulfur dioxide, pH, alcohol, sulphates
+    - white wine: pH, volatile_acidity, residual_sugar, alcohol
+    
+## Model Evaluation 
+
+Models were compared on the following metrics:
+
+* Accuracy
+  + Correct Classifications/Total 
+* Kappa 
+* Weighted Kappa
+  + A more useful version of Kappa for data with inherent ordering that penalizes misclassifications proportional to the distance from the true category.
+  + For instance, when the true quality rating is 4, a prediction of 7 will be penalized more severely than a prediction of 5. 
+  
 ## Results: Linear Model (red wine quality classification)
 ```{r redlinplot, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
 lllin = function(color) {
@@ -294,24 +348,17 @@ rklin = wkappa(linredCM$table)
 
 # classification results as a plot
 cmPlot(linrclass, "red", pred_first = TRUE,
-       "Linear Model Classification of Quality for Red Wines")
+       "Linear Model Classification of Quality for Red Wines", axis.title.size = 20, axis.text.size = 25)
 ```
 ## Results: Linear Model (white wine quality classification)
 ```{r whitelinplot, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
 cmPlot(linwclass, "white", pred_first = TRUE,
-      "Linear Model Classification of Quality for White Wines")
+      "Linear Model Classification of Quality for White Wines", axis.title.size = 20, axis.text.size = 25)
 ```
-
 
 ## Results: Partial Proportional Odds Model (White Wine)
 
-* Our package includes functions to implement the following models 
-  + Non-proportional odds: $logit(P(Z \leq j|x)) = \alpha_j + x^T\beta_j$
-  + Proportional odds: $logit(P(Z \leq j|x)) = \alpha_j + x^T\beta$
-  + Partial proportional odds: $logit(P(Z \leq j|x)) = \alpha_j + x^T_*\beta + x^T_{**}\beta_j$
-* Log likelihood maximized using BFGS (default) or any available method in package optimx
-
-```{r, echo=F, warning=F, message = F}
+```{r, echo=F, warning=F, message = F, results = 'hide'}
 library(psych)
 beta.starts <- coef(lm(quality ~ alcohol+ pH + volatile.acidity + residual.sugar,
                        data = white_train))
@@ -350,7 +397,7 @@ white.prop.odds.metrics <- c(white.pred.accuracy, white.pred.kappa, white.pred.w
 
 ```{r, echo=F, warning=F, message=F}
 #plotting confusion matrix 
-cmPlot(white.pred.table, "white", pred_first = T, title = "Proportional Odds Model Predicted vs Observed")
+cmPlot(white.pred.table, "white", pred_first = T, title = "Proportional Odds Model Predicted vs Observed", axis.title.size = 20, axis.text.size = 25)
 
 ```
 
@@ -359,7 +406,7 @@ cmPlot(white.pred.table, "white", pred_first = T, title = "Proportional Odds Mod
 * Proportional, partial proportional, and and non-proportional odds models all converged
 * Results presented for partial proportional model with coefficient for total sulfur dioxide allowed to vary with the level of wine quality
 
-```{r,echo=F, warning=F, message = F}
+```{r,echo=F, warning=F, message = F, results='hide'}
 
 beta.starts <- coef(lm(quality ~ alcohol+ pH + volatile.acidity + sulphates + total.sulfur.dioxide,
                        data = red_train))
@@ -445,6 +492,9 @@ red.partial.prop.model.comp <- data.frame(Model = c("Proportional Odds", "Partia
                                           Weighted.Kappa = c(red.prop.odds.wkappa, red.partial.prop.wkappa, 
                                                        red.non.prop.wkappa)) 
 colnames(red.partial.prop.model.comp) <- c("Model", "Accuracy", "Kappa", "Weighted Kappa")
+```
+
+```{r}
 kable(red.partial.prop.model.comp, caption = "Comparison of Partial Proportional Odds Models for Red Wine Quality",
       digits = 4, booktabs=T)
 ```
@@ -457,29 +507,27 @@ kable(red.partial.prop.model.comp, caption = "Comparison of Partial Proportional
 
 ```{r, echo=F, warning=F, message = F}
 #plotting confusion matrix 
-cmPlot(red.prop.odds.table, "red", pred_first = T, title = "Proportional Odds Predicted vs Observed")
+cmPlot(red.prop.odds.table, "red", pred_first = T, title = "Proportional Odds Predicted vs Observed", axis.title.size = 20, axis.text.size = 25)
 ```
 
 ## Results: Partial Proportional Odds Model (Red Wine)
 
 ```{r, echo=F, warning=F, message = F}
-cmPlot(red.partial.prop.preds.table, "red", pred_first = T, title = "Partial Proportional Odds Predicted vs Observed")
+cmPlot(red.partial.prop.preds.table, "red", pred_first = T, title = "Partial Proportional Odds Predicted vs Observed", axis.title.size = 20, axis.text.size = 25)
 ```
 
 ## Results: Partial Proportional Odds Model (Red Wine)
 
 ```{r, echo=F, warning=F, message = F}
-cmPlot(red.non.prop.odds.table, "red", pred_first = T, title = "Non-Proportional Odds Predicted vs Observed")
+cmPlot(red.non.prop.odds.table, "red", pred_first = T, title = "Non-Proportional Odds Predicted vs Observed", axis.title.size = 20, axis.text.size = 25)
 ```
 
 
 ## Results: Multinomial Model
 
-```{r, message = F}
+```{r, message = F, results='hide'}
 red_test_fit <- fit_multinomial_regression(red_test, quality ~ 1 + alcohol + volatile.acidity + total.sulfur.dioxide + pH + sulphates, ref_level = "8", trace = 1, itters = 300)
 ```
-
-
 
 ## Results: Random Forests (wine type classification)
 ```{r merged.rf, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE}
@@ -526,7 +574,6 @@ ggplot(class.table, aes(x = Reference, y = Prediction, size = Freq, fill=Freq, l
   ggtitle("RF Classification of Wine Type") + theme(plot.title = element_text(hjust=.5, size=20))
 ```
 
-
 ## Results: Random Forests (red wine quality classification)
 ```{r red.rf, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE}
 source("./R/cmPlot_function.R") # required to plot CMs
@@ -558,7 +605,7 @@ class.white$Freq[class.white$Freq == 0] <-NA
 
 # classification results as a plot
 cmPlot(class.red, "red", pred_first = TRUE,
-"RF Classification of Quality for Red Wines")
+"RF Classification of Quality for Red Wines", axis.title.size = 20, axis.text.size = 25)
 #cmPlot(class.white, "white", pred_first = TRUE,
 #       "RF Classification of Quality for White Wines")
 
@@ -580,7 +627,7 @@ wk.white <- round(cohen.kappa(cM.white$table)$weighted.kappa, 4)
 ## Results: Random Forests (white wine quality classification)
 ```{r white.rf, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE}
 cmPlot(class.white, "white", pred_first = TRUE,
-"RF Classification of Quality for White Wines")
+"RF Classification of Quality for White Wines", axis.title.size = 20, axis.text.size = 25)
 ```
 
 ## Results: Random Forests (grouped red wine quality classification)
@@ -612,7 +659,7 @@ class.white.grp$Freq[class.white.grp$Freq == 0] <-NA
 
 # classification results as a plot
 cmPlot(class.red.grp, "red", pred_first = TRUE,
-"RF Classification of Grouped Quality for Red Wines")
+"RF Classification of Grouped Quality for Red Wines", axis.title.size = 20, axis.text.size = 25)
 #cmPlot(class.white.grp, "white", pred_first = TRUE,
 #       "RF Classification of Grouped Quality for White Wines")
 
@@ -633,7 +680,7 @@ wk.white.grp <- round(cohen.kappa(cM.white.grp$table)$weighted.kappa, 4)
 ## Results: Random Forests (grouped white wine quality classification)
 ```{r white.rf.grouped,echo=FALSE, message=FALSE, warning=FALSE}
 cmPlot(class.white.grp, "white", pred_first = TRUE,
-"RF Classification of Grouped Quality for White Wines")
+"RF Classification of Grouped Quality for White Wines", axis.title.size = 20, axis.text.size = 25)
 ```
 
 ## Results: Random Forests with Subsampling (grouped red wine quality classification)
@@ -678,7 +725,7 @@ class.white.grp.ss$Freq[class.white.grp.ss$Freq == 0] <-NA
 
 # classification results as a plot
 cmPlot(class.red.grp.ss, "red", pred_first = TRUE,
-"RF Classification of Grouped Quality for Red Wines \n Subsampled by Group")
+"RF Classification of Grouped Quality for Red Wines \n Subsampled by Group", axis.title.size = 20, axis.text.size = 25)
 # cmPlot(class.white.grp.ss, "white", pred_first = TRUE,
 #        "RF Classification of Grouped Quality for White Wines \n Subsampled by Group")
 
@@ -702,7 +749,7 @@ wk.white.grp.ss <- round(cohen.kappa(cM.white.grp.ss$table)$weighted.kappa, 4)
 
 ```{r white.rf.grouped.ss,echo=FALSE, message=FALSE, warning=FALSE}
 cmPlot(class.white.grp.ss, "white", pred_first = TRUE,
-"RF Classification of Grouped Quality for White Wines \n Subsampled by Group")
+"RF Classification of Grouped Quality for White Wines \n Subsampled by Group", axis.title.size = 20, axis.text.size = 25)
 ```
 
 ## Comparison of Results: Red Wine, Ungrouped
