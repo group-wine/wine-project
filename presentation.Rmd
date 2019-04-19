@@ -129,7 +129,6 @@ levels(y.test.white.grp)[3:5] <- "high"
 
 #--------------------------------------------------------------------#
 
-
 ```
 
 ## Introduction
@@ -147,8 +146,8 @@ To determine how accurately we can predict expert wine quality ratings using a s
 
 * 2 datasets of  expert quality ratings of red and white Vinho Verde wines 
   + source: http://archive.ics.uci.edu/ml/datasets/wine+quality
-  + `nrow(red_test) + nrow(red_train)` red wines 
-  + `nrow(white_test) + nrow(white_train)` white wines 
+  + `r nrow(red_test) + nrow(red_train)` red wines 
+  + `r nrow(white_test) + nrow(white_train)` white wines 
 * Outcome variable: wine quality
     + ordinal variable theoretically ranging from 0-10
       - Observed ratings range from 3-9 
@@ -393,7 +392,7 @@ white.prop.odds.metrics <- c(white.pred.accuracy, white.pred.kappa, white.pred.w
   + Kappa: `r round(white.pred.kappa, 4)`
   + Weighted Kappa: `r round(white.pred.wkappa, 4)`
 
-## Results: Partial Proportional Odds Model (White Wine)
+## Results: Proportional Odds Model (White Wine)
 
 ```{r, echo=F, warning=F, message=F}
 #plotting confusion matrix 
@@ -494,7 +493,9 @@ red.partial.prop.model.comp <- data.frame(Model = c("Proportional Odds", "Partia
 colnames(red.partial.prop.model.comp) <- c("Model", "Accuracy", "Kappa", "Weighted Kappa")
 ```
 
-```{r}
+## Results: Comparison of Partial Proportional Odds Models (Red Wine)
+
+```{r, echo=F}
 kable(red.partial.prop.model.comp, caption = "Comparison of Partial Proportional Odds Models for Red Wine Quality",
       digits = 4, booktabs=T)
 ```
@@ -503,7 +504,7 @@ kable(red.partial.prop.model.comp, caption = "Comparison of Partial Proportional
 * Overall Accuracy is best for non-proportional odds
 * Weighted kappa best for proportional odds model 
 
-## Results: Partial Proportional Odds Model (Red Wine)
+## Results: Proportional Odds Model (Red Wine)
 
 ```{r, echo=F, warning=F, message = F}
 #plotting confusion matrix 
@@ -516,12 +517,11 @@ cmPlot(red.prop.odds.table, "red", pred_first = T, title = "Proportional Odds Pr
 cmPlot(red.partial.prop.preds.table, "red", pred_first = T, title = "Partial Proportional Odds Predicted vs Observed", axis.title.size = 20, axis.text.size = 25)
 ```
 
-## Results: Partial Proportional Odds Model (Red Wine)
+## Results: Non-Proportional Odds Model (Red Wine)
 
 ```{r, echo=F, warning=F, message = F}
 cmPlot(red.non.prop.odds.table, "red", pred_first = T, title = "Non-Proportional Odds Predicted vs Observed", axis.title.size = 20, axis.text.size = 25)
 ```
-
 
 ## Results: Multinomial Model
 
@@ -576,7 +576,7 @@ ggplot(class.table, aes(x = Reference, y = Prediction, size = Freq, fill=Freq, l
 
 ## Results: Random Forests (red wine quality classification)
 ```{r red.rf, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE}
-source("./R/cmPlot_function.R") # required to plot CMs
+#source("./R/cmPlot_function.R") # required to plot CMs
 # train random forest
 trCtl <- trainControl(savePredictions=TRUE)
 fit.red <- train(x.train.red, y.train.red, method="rf", trControl=trCtl)
