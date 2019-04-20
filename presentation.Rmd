@@ -43,6 +43,27 @@ install_github("group-wine/sommelieR")
 library(sommelieR)
 ```
 
+```{r useful_functions, include = F}
+pred_summary_stats <- function(preds, true_values, model){
+  confusion_matrix_obj <- confusionMatrix(as.factor(preds),
+                                      as.factor(true_values))
+  accuracy <- confusion_matrix_obj$overall[1]
+  kappa <- confusion_matrix_obj$overall[2]
+  wt.kappa <- cohen.kappa(confusion_matrix_obj$table)$weighted.kappa
+  
+  
+  pct_correct_by_cat <- (diag(confusion_matrix_obj$table)/table(true_values))
+  pct_correct_df <- as.data.frame(pct_correct_by_cat) %>% 
+    spread(true_values, Freq)
+  pred_sum_stats <- bind_cols("Model" = model,"Prediction Accuracy" = accuracy,Kappa = kappa, `Weighted Kappa` = wt.kappa, pct_correct_df) %>% 
+    mutate_at(.vars = vars(-c("Model", "Kappa", "Weighted Kappa")),
+              .funs = function(x){x*100})
+  return(pred_sum_stats)
+}
+
+```
+
+
 ```{r setup, include = F}
 #load the datasets 
 data("red_test")
@@ -368,7 +389,6 @@ cmPlot(linwclass, "white", pred_first = TRUE,
 ## Results: Partial Proportional Odds Model (White Wine)
 
 ```{r, echo=F, warning=F, message = F, results = 'hide'}
-library(psych)
 beta.starts <- coef(lm(quality ~ alcohol+ pH + volatile.acidity + residual.sugar,
                        data = white_train))
 
@@ -533,36 +553,105 @@ cmPlot(red.partial.prop.preds.table, "red", pred_first = T, title = "Partial Pro
 cmPlot(red.non.prop.odds.table, "red", pred_first = T, title = "Non-Proportional Odds Predicted vs Observed", axis.title.size = 20, axis.text.size = 25)
 ```
 
-## Results: Multinomial Model
 
-```{r, message = F, results='hide'}
-red_train_fit <- fit_multinomial_regression(red_train, quality ~ 1 + alcohol + volatile.acidity + total.sulfur.dioxide + pH, ref_level = "8", trace = 1, itters = 300)
+
+```{r eval=FALSE, message=F, include=FALSE, results='hide'}
+#Begin Multinomial Results Section
+
+set.seed(13)
+red_train_full_fit <- fit_multinomial_regression(red_train, quality ~ 1 + ., ref_level = "8", trace = 1, itters = 300)
+
+red_train_reduced_linear_fit <- fit_multinomial_regression(red_train, quality ~ 1 + alcohol + volatile.acidity + total.sulfur.dioxide + pH + sulphates, ref_level = "8", trace = 1, itters = 300)
+
+red_train_reduced_all_quad_fit <- fit_multinomial_regression(red_train, quality ~ 1 + alcohol + volatile.acidity + total.sulfur.dioxide + pH+ I(alcohol*alcohol) + I(volatile.acidity*volatile.acidity) + I(pH*pH) + I(total.sulfur.dioxide*total.sulfur.dioxide) + I(sulphates*sulphates) + (alcohol + volatile.acidity + total.sulfur.dioxide + pH + sulphates)^2, ref_level = "8", trace = 1, itters = 300)
+
+white_train_full_fit <- fit_multinomial_regression(white_train, quality ~ 1 + ., ref_level = "8", trace = 1, itters = 300)
+
+white_train_linear_fit <- fit_multinomial_regression(white_train, quality ~ 1 + pH + volatile.acidity + residual.sugar + alcohol, ref_level = "8", trace = 1, itters = 300)
+
+#Takes a long long long time to run
+white_train_quad_fit <- fit_multinomial_regression(white_train, quality ~ 1 + pH + volatile.acidity + residual.sugar + alcohol + (pH + volatile.acidity + residual.sugar + alcohol)^2 + I(pH*pH) + I(volatile.acidity*volatile.acidity) + I(residual.sugar*residual.sugar) + I(alcohol*alcohol), ref_level = "8", trace = 1, itters = 300)
+
+
+saveRDS(red_train_full_fit, "multinomial_models/red_full_fit.rds")
+saveRDS(red_train_reduced_linear_fit, "multinomial_models/red_reduced_linear_fit.rds")
+saveRDS(red_train_reduced_all_quad_fit, "multinomial_models/red_reduced_all_quad_fit.rds")
+saveRDS(white_train_full_fit, "multinomial_models/white_full_fit.rds")
+saveRDS(white_train_linear_fit, "multinomial_models/white_reduced_linear_fit.rds")
+saveRDS(white_train_quad_fit, "multinomial_models/white_reduced_quad_fit.rds")
 ```
 
-```{r}
-red_test_preds <- predict_multinomial(red_train_fit, scaled_test_data)
-
-red_confusion_matrix <- confusionMatrix(as.factor(red_test_preds), as.factor(scaled_test_data$quality))
+```{r include=FALSE, message=F, warning=F}
+red_train_full_fit <- readRDS("multinomial_models/red_full_fit.rds")
+red_train_reduced_linear_fit <- readRDS("multinomial_models/red_reduced_linear_fit.rds")
+red_train_reduced_all_quad_fit <- readRDS("multinomial_models/red_reduced_all_quad_fit.rds")
+white_train_full_fit <- readRDS("multinomial_models/white_full_fit.rds")
+white_train_linear_fit <- readRDS("multinomial_models/white_reduced_linear_fit.rds")
+white_train_quad_fit <- readRDS("multinomial_models/white_reduced_quad_fit.rds")
 ```
 
-```{r}
-scaled_data <- red_train %>%
-  select(quality, alcohol, volatile.acidity, total.sulfur.dioxide, pH) %>% 
-  mutate(quality = as.factor(quality)) %>% 
-  mutate_if(is.numeric, scale)
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+#Fit predictions
+red_test_full_preds <- predict_multinomial(red_train_full_fit, red_test)
+red_test_reduced_linear_preds <- predict_multinomial(red_train_reduced_linear_fit, red_test)
+red_test_reduced_quad_preds <- predict_multinomial(red_train_reduced_all_quad_fit, red_test)
+white_test_full_preds <- predict_multinomial(white_train_full_fit, white_test)
+white_test_linear_preds <- predict_multinomial(white_train_linear_fit,
+                                              white_test)
+white_test_quad_preds <- predict_multinomial(white_train_quad_fit, white_test)
 ```
 
-```{r}
-scaled_test_data <- red_test %>%
-  select(quality, alcohol, volatile.acidity, total.sulfur.dioxide, pH) %>% 
-  mutate(quality = as.factor(quality)) %>% 
-  mutate_if(is.numeric, scale)
+## Results: Multinomial Regression (Red Wine Quality Classification)
+```{r message=FALSE, warning=FALSE}
+multinomial_red_results <- bind_rows(
+  pred_summary_stats(red_test_full_preds, red_test$quality, "Full Model (Linear Terms Only)"),
+  pred_summary_stats(red_test_reduced_linear_preds, red_test$quality, "Reduced Model (Linear Terms Only)"),
+   pred_summary_stats(red_test_reduced_quad_preds, red_test$quality, "Reduced Model (All Second Order Terms)")
+) %>% dplyr::arrange(desc(`Weighted Kappa`)) 
+
+multinomial_red_results %>% 
+  kable(caption = "Comparison of Multinomial Regression Models for Red Wine Quality", 
+        booktabs = T, digits = 4)
+
+#Remove "model" because it's not in the big table. 
+multinomial_best_red_model_results <- red_results %>% slice(1) %>% 
+  select(-Model)
 ```
 
-```{r}
-red_train_fit <- fit_multinomial_regression(scaled_data, quality ~ 1 + alcohol + volatile.acidity + total.sulfur.dioxide + pH+ I(alcohol*alcohol) + I(volatile.acidity*volatile.acidity) + I(pH*pH) + I(total.sulfur.dioxide) + (alcohol + volatile.acidity + total.sulfur.dioxide + pH)^2, ref_level = "8", trace = 1, itters = 300)
+## Results: Multinomial Regression - Full Model Confusion Matrix (Red Wine)
+```{r, echo=F, warning=F, message = F}
+multinom_red_best_cm <- confusionMatrix(as.factor(red_test_full_preds), as.factor(red_test$quality))$table %>% 
+  as.data.frame()
+
+cmPlot(multinom_red_best_cm, "red", pred_first = T, title = "Multinomial Regression Confused\n on Non-Average Wines", axis.title.size = 20, axis.text.size = 25)
 ```
 
+
+## Results: Multinomial Regression (White Wine Quality Classification)
+```{r message=FALSE, warning=FALSE}
+multinomial_white_results <- bind_rows(
+  pred_summary_stats(white_test_full_preds, white_test$quality, "Full Model (Linear Terms Only)"),
+  pred_summary_stats(white_test_linear_preds, white_test$quality, "Reduced Model (Linear Terms Only)"),
+   pred_summary_stats(white_test_quad_preds, white_test$quality, "Reduced Model (All Second Order Terms)"))%>% 
+  dplyr::arrange(desc(`Weighted Kappa`))
+
+multinomial_white_results %>% 
+  kable(caption = "Comparison of Multinomial Regression Models for Red Wine Quality", 
+        booktabs = T, digits = 4)
+
+multinomial_white_best_model_results <- white_results %>%
+  slice(1) %>% 
+  select(-Model)
+```
+
+## Results: Multinomial Regression - Full Model Confusion Matrix (White Wine)
+```{r, echo=F, warning=F, message = F}
+multinom_white_best_cm <- confusionMatrix(as.factor(white_test_full_preds), as.factor(white_test$quality))$table %>% 
+  as.data.frame()
+
+cmPlot(multinom_white_best_cm, "white", pred_first = T, title = "Multinomial Regression Confused\n on Non-Average Wines", axis.title.size = 20, axis.text.size = 25)
+```
 
 ## Results: Random Forests (wine type classification)
 ```{r merged.rf, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE}
@@ -795,8 +884,7 @@ cmPlot(class.white.grp.ss, "white", pred_first = TRUE,
 # round results to 4 digits
 # accuracy into categories as percent
 # rename row and fill in data accordingly (add more rows if needed)
-library(knitr)
-library(kableExtra)
+
 #-----------------------------------------------------------------------------#
 # RED WINE NO GROUPING
 results.red <- setNames(data.frame(matrix(ncol = 9, nrow = 6)),
@@ -807,7 +895,8 @@ rownames(results.red) <- c("Random Forest", "Proportional Odds", "Partial Propor
 results.red[1,] <- c(res.red, pred.red, wk.red)
 results.red[2, ] <- red.prop.odds.metrics
 results.red[3, ] <- red.partial.prop.metrics
-results.red[4, ] <- red.non.prop.odds.metrics 
+results.red[4, ] <- red.non.prop.odds.metrics
+results.red["Multinomial", ] <- multinomial_best_red_model_results
 results.red['Linear Regression', ] <- c(linracc, round(rklin$kappa,4), round(rklin$weighted.kappa,4),linrpred)
 
 
@@ -819,6 +908,7 @@ rownames(results.white) <- c("Random Forest", "Proportional Odds", "Partial Prop
 
 results.white[1,] <- c(res.white, pred.white, wk.white)
 results.white[2, ] <- white.prop.odds.metrics 
+results.white["Multinomial", ] <- multinomial_white_best_model_results
 results.white['Linear Regression', ] <- c(linwacc, round(wklin$kappa,4), round(wklin$weighted.kappa,4),linwpred)
 
 
@@ -846,7 +936,7 @@ results.white.grp[2,] <- c(res.white.grp.ss, pred.white.grp.ss, wk.white.grp.ss)
 #-----------------------------------------------------------------------------#
 # Print out comparison tables created above
 # Red wine no groups
-kable(results.red, caption = "Comparison of Results for Red Wine", booktabs=T) %>%
+kable(results.red, caption = "Comparison of Results for Red Wine", booktabs=T,digits = 4) %>%
 add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 6)) %>%
 kable_styling(latex_options = c("repeat_header", "scale_down"))
 
@@ -858,7 +948,7 @@ kable_styling(latex_options = c("repeat_header", "scale_down"))
 # Print out comparison tables created above
 
 # White wine no groups
-kable(results.white, caption = "Comparison of Results for White Wine", booktabs=T) %>%
+kable(results.white, caption = "Comparison of Results for White Wine", booktabs=T, digits = 4) %>%
 add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 7)) %>%
 kable_styling(latex_options = c("repeat_header", "scale_down"))
 ```
