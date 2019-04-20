@@ -526,8 +526,33 @@ cmPlot(red.non.prop.odds.table, "red", pred_first = T, title = "Non-Proportional
 ## Results: Multinomial Model
 
 ```{r, message = F, results='hide'}
-red_test_fit <- fit_multinomial_regression(red_test, quality ~ 1 + alcohol + volatile.acidity + total.sulfur.dioxide + pH + sulphates, ref_level = "8", trace = 1, itters = 300)
+red_train_fit <- fit_multinomial_regression(red_train, quality ~ 1 + alcohol + volatile.acidity + total.sulfur.dioxide + pH, ref_level = "8", trace = 1, itters = 300)
 ```
+
+```{r}
+red_test_preds <- predict_multinomial(red_train_fit, scaled_test_data)
+
+red_confusion_matrix <- confusionMatrix(as.factor(red_test_preds), as.factor(scaled_test_data$quality))
+```
+
+```{r}
+scaled_data <- red_train %>%
+  select(quality, alcohol, volatile.acidity, total.sulfur.dioxide, pH) %>% 
+  mutate(quality = as.factor(quality)) %>% 
+  mutate_if(is.numeric, scale)
+```
+
+```{r}
+scaled_test_data <- red_test %>%
+  select(quality, alcohol, volatile.acidity, total.sulfur.dioxide, pH) %>% 
+  mutate(quality = as.factor(quality)) %>% 
+  mutate_if(is.numeric, scale)
+```
+
+```{r}
+red_train_fit <- fit_multinomial_regression(scaled_data, quality ~ 1 + alcohol + volatile.acidity + total.sulfur.dioxide + pH+ I(alcohol*alcohol) + I(volatile.acidity*volatile.acidity) + I(pH*pH) + I(total.sulfur.dioxide) + (alcohol + volatile.acidity + total.sulfur.dioxide + pH)^2, ref_level = "8", trace = 1, itters = 300)
+```
+
 
 ## Results: Random Forests (wine type classification)
 ```{r merged.rf, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE}
