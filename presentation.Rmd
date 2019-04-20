@@ -277,10 +277,6 @@ corrplot(rcor_white$r, type="upper", order="hclust", tl.col = "black",
     - linear regression 
     - partial proportional odds model 
     - multinomial model 
-    
-## Methods: Random Forest
-
-* Something here describing the random forest approach
 
 ## Methods: Linear Regression 
 
@@ -304,6 +300,18 @@ Three different approaches were considered:
 * model likelihood: 
 * Predicted classification: the rating with the highest predicted probability
 
+## Methods: Multinomial Regression
+
+* Reponse takes values in K classes
+* Model: $\log \frac{Pr(G = k | X = x)}{P(G = K | X = x)} = X\beta_k$ for $k = 1,...,(K-1)$
+* Predictions: $P(G = k | X = x) = \frac{\exp(X\beta_k)}{1 + \sum_{l = 1}^{K - 1}\exp(X\beta_l)},k = 1,..., K-1$
+* Considered 3 Models: All Predictors with Linear Terms, Reduced Model with Linear Terms, and Reduced Model with All Second Order Terms
+* Computational Efficiency Chalenges
+
+## Methods: Random Forest
+
+* Something here describing the random forest approach
+
 ## Variable Selection
 
 * All physiochemical variables were included as potential predictors in random forest models 
@@ -320,9 +328,10 @@ Models were compared on the following metrics:
 * Accuracy
   + Correct Classifications/Total 
 * Kappa 
-* Weighted Kappa
+* Weighted Kappa - used to select the final model
   + A more useful version of Kappa for data with inherent ordering that penalizes misclassifications proportional to the distance from the true category.
   + For instance, when the true quality rating is 4, a prediction of 7 will be penalized more severely than a prediction of 5. 
+
   
 ## Results: Linear Model (red wine quality classification)
 ```{r redlinplot, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
