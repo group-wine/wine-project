@@ -53,6 +53,15 @@ data("white_train")
 white.obs <- white_test$quality
 red.obs <- red_test$quality
 
+#center and scale the predictors 
+red_test[ , colnames(red_test) != "quality"] <- apply(red_test[ , colnames(red_test) != "quality"], 
+                                                      2, function(x) (x - mean(x))/sd(x))
+red_train[ , colnames(red_train) != "quality"] <- apply(red_train[ , colnames(red_train) != "quality"], 
+                                                      2, function(x) (x - mean(x))/sd(x))
+white_test[ , colnames(white_test) != "quality"] <- apply(white_test[ , colnames(white_test) != "quality"], 
+                                                      2, function(x) (x - mean(x))/sd(x))
+white_train[ , colnames(white_train) != "quality"] <- apply(white_train[ , colnames(white_train) != "quality"], 
+                                                      2, function(x) (x - mean(x))/sd(x))
 
 #--------------------------------------------------------------------#
 # Data set up for boxplot code:
@@ -265,6 +274,7 @@ Three different approaches were considered:
 * Non-proportional odds: $logit(P(Z \leq j|x)) = \alpha_j + x^T\beta_j$
 * Proportional odds: $logit(P(Z \leq j|x)) = \alpha_j + x^T\beta$
 * Partial proportional odds: $logit(P(Z \leq j|x)) = \alpha_j + x^T_*\beta + x^T_{**}\beta_j$
+* $\alpha_j > \alpha_i$ for $j > i$
 * Log likelihood maximized using BFGS (default) or any available method in package optimx
 * Predicted classification: the rating with the highest predicted probability
 
