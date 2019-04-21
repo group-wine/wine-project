@@ -297,11 +297,11 @@ Three different approaches were considered:
 
 ## Methods: Multinomial Regression
 
-* Reponse takes values in K classes
+* Response takes values in K classes
 * Model: $\log \frac{Pr(G = k | X = x)}{P(G = K | X = x)} = X\beta_k$ for $k = 1,...,(K-1)$
 * Predictions: $P(G = k | X = x) = \frac{\exp(X\beta_k)}{1 + \sum_{l = 1}^{K - 1}\exp(X\beta_l)},k = 1,..., K-1$
 * Considered 3 Models: All Predictors with Linear Terms, Reduced Model with Linear Terms, and Reduced Model with All Second Order Terms
-* Computational Efficiency Chalenges
+* Computational Efficiency Challenges
 
 ## Methods: Random Forest
 
@@ -794,10 +794,38 @@ add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 7
 kable_styling(latex_options = c("repeat_header", "scale_down"))
 ```
 
-## Discussion   
+## Discussion: Random Forest    
 
-* 
+* Using random forests, we were able to predict expert wine quality ratings fairly accurately using measurements of a small number of chemical components of wine
+  + White wine
+    - Accuracy: `r res.white[1]`% 
+    - Weighted Kappa: `r wk.white`
+  + Red wine
+    - Accuracy: `r res.red[1]`% 
+    - Weighted Kappa: `r wk.red`
+* Using the proposed cutoffs from Landis and Koch, these weighted Kappa values suggest moderate to substantial agreement with the expert ratings
 
+## Discussion: Likelihood Based Approaches
+
+* The likelihood based approaches performed more poorly, with accuracies 10-15% lower than random forest and weighted kappas 0.1 to 0.2 lower
+* Even so, the weighted kappas all suggested moderate agreement with the expert ratings and were clearly better than random guessing
+* There was not a clear winner among the likelihood based approaches, accuracies and kappas were very similar across multinomial, ordinal, and linear regression models
+  + Accounting for the ordered nature of the ratings did not make a difference in predictions 
+  + In some cases, doing so actually resulted in (slightly) worse predictive performance
+  
+## Discussion: Limitations and Future Directions 
+
+* We only had data on a small number of reasonably easy to measure chemicals, we speculate some misclassification was due to failure to measure other important chemicals.
+* Our goal was simply to predict quality ratings, in the future, it would be interesting characterize how individual chemicals relate to wine quality. 
+* There were only a small number of truly excellent wines (rating of 8 or higher) making it particularly difficult to predict these ratings. It would be worthwhile to examine whether various outlier detection algorithms are more suited to characterizing these wines than the approaches we took. 
+
+## Bottom Line
+
+Expert wine quality ratings can be predicted reasonably well using chemical components, but true wine connoisseurs are still better off consulting a sommelier. 
+
+## References
+
+Landis JR, Koch GG. The measurement of observer agreement for categorical data. Biometrics. 1977 Mar;33(1):159-74.
 
 
 
