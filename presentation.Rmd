@@ -170,7 +170,7 @@ levels(y.test.white.grp)[3:5] <- "high"
 
 ## Project Aim
 
-To determine how accurately we can predict expert wine quality ratings using a set of easily measured chemical components of the wine.
+To determine how accurately expert wine quality ratings can be predicted using a set of easily measured chemical components.
 
 ## Data
 
@@ -267,9 +267,9 @@ corrplot(rcor_white$r, type="upper", order="hclust", tl.col = "black",
 ## Methods
 
 * The red and white wine datasets were split into training and testing sets
-  + 80% of the available data sampled for training models
-  + Remaining 20% used to evaluate the accuracy of the trained models
-  + Relative frequencies of quality ratings in the full data were preserved in the training and testing data 
+  + 80% of available data sampled for training models
+  + Remaining 20% used to evaluate accuracy
+  + Relative frequencies of quality ratings in full dataset were preserved in training and testing data 
 * Modeling Approach
   + Machine learning
     - Random forest classification of quality ratings 
@@ -295,11 +295,6 @@ Three different approaches were considered:
 * Log likelihood maximized using BFGS (default) or any available method in package optimx
 * Predicted classification: the rating with the highest predicted probability
 
-## Methods: Partial Proportional Odds Models 
-
-* model likelihood: 
-* Predicted classification: the rating with the highest predicted probability
-
 ## Methods: Multinomial Regression
 
 * Reponse takes values in K classes
@@ -314,7 +309,7 @@ Three different approaches were considered:
 
 ## Variable Selection
 
-* All physiochemical variables were included as potential predictors in random forest models 
+* Random Forest: all physiochemical variables included  
 * Likelihood based models:
   + We examined the correlations between predictors and considered best subsets found in R based on linear regression.
   + The final predictor variables selected were:
@@ -331,9 +326,8 @@ Models were compared on the following metrics:
 * Weighted Kappa - used to select the final model
   + A more useful version of Kappa for data with inherent ordering that penalizes misclassifications proportional to the distance from the true category.
   + For instance, when the true quality rating is 4, a prediction of 7 will be penalized more severely than a prediction of 5. 
-
   
-## Results: Linear Model (red wine quality classification)
+## Results: Linear Model 
 ```{r redlinplot, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
 lllin = function(color) {
   if (color=='red') {
@@ -385,11 +379,26 @@ linwacc = round(linwhiteCM$overall['Accuracy'], 4) * 100
 wklin = wkappa(linwhiteCM$table)
 rklin = wkappa(linredCM$table)
 
+```
+
+* Red Wine
+  + Accuracy: `r linracc`
+  + Kappa: `r round(rklin$kappa,4)`
+  + Weighted Kappa: `r round(rklin$weighted.kappa,4)`
+  
+* White Wine
+  + Accuracy: `r linwacc`
+  + Kappa: `r round(wklin$kappa,4)`
+  + Weighted Kappa: `r round(wklin$weighted.kappa,4)`
+
+## Results: Linear Model (Red Wine)
+```{r, echo=F}
 # classification results as a plot
 cmPlot(linrclass, "red", pred_first = TRUE,
        "Linear Model Classification of Quality for Red Wines", axis.title.size = 20, axis.text.size = 25)
 ```
-## Results: Linear Model (white wine quality classification)
+
+## Results: Linear Model (White Wine)
 ```{r whitelinplot, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
 cmPlot(linwclass, "white", pred_first = TRUE,
       "Linear Model Classification of Quality for White Wines", axis.title.size = 20, axis.text.size = 25)
@@ -539,10 +548,6 @@ kable(red.partial.prop.model.comp, caption = "Comparison of Partial Proportional
       digits = 4, booktabs=T)
 ```
 
-* Results are similar across models 
-* Overall Accuracy is best for non-proportional odds
-* Weighted kappa best for proportional odds model 
-
 ## Results: Proportional Odds Model (Red Wine)
 
 ```{r, echo=F, warning=F, message = F}
@@ -561,8 +566,6 @@ cmPlot(red.partial.prop.preds.table, "red", pred_first = T, title = "Partial Pro
 ```{r, echo=F, warning=F, message = F}
 cmPlot(red.non.prop.odds.table, "red", pred_first = T, title = "Non-Proportional Odds Predicted vs Observed", axis.title.size = 20, axis.text.size = 25)
 ```
-
-
 
 ```{r eval=FALSE, message=F, include=FALSE, results='hide'}
 #Begin Multinomial Results Section
@@ -612,44 +615,48 @@ white_test_quad_preds <- predict_multinomial(white_train_quad_fit, white_test)
 ```
 
 ## Results: Multinomial Regression (Red Wine Quality Classification)
-```{r message=FALSE, warning=FALSE}
+```{r message=FALSE, warning=FALSE, echo=F}
 multinomial_red_results <- bind_rows(
-  pred_summary_stats(red_test_full_preds, red_test$quality, "Full Model (Linear Terms Only)"),
-  pred_summary_stats(red_test_reduced_linear_preds, red_test$quality, "Reduced Model (Linear Terms Only)"),
-   pred_summary_stats(red_test_reduced_quad_preds, red_test$quality, "Reduced Model (All Second Order Terms)")
+  pred_summary_stats(red_test_full_preds, red_test$quality, "Full Model (Linear Terms)"),
+  pred_summary_stats(red_test_reduced_linear_preds, red_test$quality, "Reduced Model (Linear Terms)"),
+   pred_summary_stats(red_test_reduced_quad_preds, red_test$quality, "Reduced Model (Second Order Terms)")
 ) %>% dplyr::arrange(desc(`Weighted Kappa`)) 
+colnames(multinomial_red_results)[2] <- "Accuracy"
 
 multinomial_red_results %>% 
   kable(caption = "Comparison of Multinomial Regression Models for Red Wine Quality", 
-        booktabs = T, digits = 4)
+        booktabs = T, digits = 4) %>%
+  kable_styling(latex_options = c("scale_down"))
 
 #Remove "model" because it's not in the big table. 
-multinomial_best_red_model_results <- red_results %>% slice(1) %>% 
+multinomial_best_red_model_results <- multinomial_red_results %>% slice(1) %>% 
   select(-Model)
 ```
 
 ## Results: Multinomial Regression - Full Model Confusion Matrix (Red Wine)
-```{r, echo=F, warning=F, message = F}
+```{r, echo=F, warning=F, message = F, echo=F}
 multinom_red_best_cm <- confusionMatrix(as.factor(red_test_full_preds), as.factor(red_test$quality))$table %>% 
   as.data.frame()
 
+multinom_red_best_cm$Freq[multinom_red_best_cm$Freq == 0] <-NA
 cmPlot(multinom_red_best_cm, "red", pred_first = T, title = "Multinomial Regression Confused\n on Non-Average Wines", axis.title.size = 20, axis.text.size = 25)
 ```
 
-
 ## Results: Multinomial Regression (White Wine Quality Classification)
-```{r message=FALSE, warning=FALSE}
+```{r message=FALSE, warning=FALSE,echo=F}
 multinomial_white_results <- bind_rows(
-  pred_summary_stats(white_test_full_preds, white_test$quality, "Full Model (Linear Terms Only)"),
-  pred_summary_stats(white_test_linear_preds, white_test$quality, "Reduced Model (Linear Terms Only)"),
-   pred_summary_stats(white_test_quad_preds, white_test$quality, "Reduced Model (All Second Order Terms)"))%>% 
+  pred_summary_stats(white_test_full_preds, white_test$quality, "Full Model (Linear Terms)"),
+  pred_summary_stats(white_test_linear_preds, white_test$quality, "Reduced Model (Linear Terms)"),
+   pred_summary_stats(white_test_quad_preds, white_test$quality, "Reduced Model (Second Order Terms)"))%>% 
   dplyr::arrange(desc(`Weighted Kappa`))
+colnames(multinomial_white_results)[2] <- "Accuracy"
 
 multinomial_white_results %>% 
   kable(caption = "Comparison of Multinomial Regression Models for Red Wine Quality", 
-        booktabs = T, digits = 4)
+        booktabs = T, digits = 4) %>%
+        kable_styling(latex_options = c("scale_down"))
 
-multinomial_white_best_model_results <- white_results %>%
+multinomial_white_best_model_results <- multinomial_white_results %>%
   slice(1) %>% 
   select(-Model)
 ```
@@ -659,55 +666,11 @@ multinomial_white_best_model_results <- white_results %>%
 multinom_white_best_cm <- confusionMatrix(as.factor(white_test_full_preds), as.factor(white_test$quality))$table %>% 
   as.data.frame()
 
+multinom_white_best_cm$Freq[multinom_white_best_cm$Freq == 0] <-NA
 cmPlot(multinom_white_best_cm, "white", pred_first = T, title = "Multinomial Regression Confused\n on Non-Average Wines", axis.title.size = 20, axis.text.size = 25)
 ```
 
-## Results: Random Forests (wine type classification)
-```{r merged.rf, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE}
-# train random forest
-trCtl <- trainControl(savePredictions=TRUE)
-fit <- train(x.train, y.train, method="rf", trControl=trCtl)
-
-# random forest training results
-#fit$results
-
-# use training model to predict y
-y.pred <- predict(fit, x.test)
-
-# results of rf on test data
-cM = confusionMatrix(data=y.pred, reference=y.test)
-
-# classification results (red vs white)
-#cM$table
-pred <- round(cM$overall[1:2], 4) # prediction accuracy and kappa
-pred[1] <- pred[1]*100
-res <- round(diag(cM$table)/table(y.test), 4)*100 # percent correct into each type
-
-#weighted kappa
-wk.type = round(cohen.kappa(cM$table)$weighted.kappa,4)
-
-results.type <- setNames(data.frame(matrix(ncol = 5, nrow = 1)),
-                            c("Prediction Accuracy", "Kappa","Weighted Kappa", "Red", "White"))
-results.type[1,] <- c(pred,wk.type,res)
-rownames(results.type) = c("Random Forest")
-
-kable(results.type, caption = "Classification Results for Wine Type", booktabs=T) %>%
-  add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 2)) %>%
-  kable_styling(latex_options = c("repeat_header", "scale_down"))
-```
-
-## Results: Random Forests (wine type classification)
-```{r merged.rfplot, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE}
-# classification results as a plot
-class.table <- as.data.frame(cM$table)
-class.table$Freq[class.table$Freq == 0] <-NA
-ggplot(class.table, aes(x = Reference, y = Prediction, size = Freq, fill=Freq, label=Freq)) +
-  scale_size(range=c(8,30)) + geom_label(na.rm=T) + theme_minimal() +
-  scale_fill_continuous(low="red3", high="lightyellow") + guides(size=FALSE) +
-  ggtitle("RF Classification of Wine Type") + theme(plot.title = element_text(hjust=.5, size=20))
-```
-
-## Results: Random Forests (red wine quality classification)
+## Results: Random Forests (Red Wine)
 ```{r red.rf, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE}
 #source("./R/cmPlot_function.R") # required to plot CMs
 # train random forest
@@ -736,12 +699,6 @@ class.red$Freq[class.red$Freq == 0] <-NA
 class.white <- as.data.frame(cM.white$table)
 class.white$Freq[class.white$Freq == 0] <-NA
 
-# classification results as a plot
-cmPlot(class.red, "red", pred_first = TRUE,
-"RF Classification of Quality for Red Wines", axis.title.size = 20, axis.text.size = 25)
-#cmPlot(class.white, "white", pred_first = TRUE,
-#       "RF Classification of Quality for White Wines")
-
 # prediction accuracy by category
 pred.red <- round(diag(cM.red$table)/table(y.test.red), 4)*100
 pred.white <- round(diag(cM.white$table)/table(y.test.white), 4)*100
@@ -757,135 +714,32 @@ wk.red <- round(cohen.kappa(cM.red$table)$weighted.kappa, 4)
 wk.white <- round(cohen.kappa(cM.white$table)$weighted.kappa, 4)
 ```
 
-## Results: Random Forests (white wine quality classification)
+* Accuracy: `r res.red[1]`%
+* Kappa: `r res.red[2]`
+* Weighted Kappa: `r wk.red`
+
+## Results: Random Forests (Red Wine)
+
+```{r, echo=F}
+# classification results as a plot
+cmPlot(class.red, "red", pred_first = TRUE,
+"RF Classification of Quality for Red Wines", axis.title.size = 20, axis.text.size = 25)
+```
+
+## Results: Random Forests (White Wine)
+
+* Accuracy: `r res.white[1]`%
+* Kappa: `r res.white[2]`
+* Weighted Kappa: `r wk.white`
+
+## Results: Random Forests (White Wine)
+
 ```{r white.rf, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE}
 cmPlot(class.white, "white", pred_first = TRUE,
 "RF Classification of Quality for White Wines", axis.title.size = 20, axis.text.size = 25)
 ```
 
-## Results: Random Forests (grouped red wine quality classification)
-```{r red.rf.grouped, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE}
-# train random forest
-fit.red.grp <- train(x.train.red, y.train.red.grp, method="rf", trControl=trCtl)
-fit.white.grp <- train(x.train.white, y.train.white.grp, method="rf", trControl=trCtl)
-
-# random forest training results
-#fit.red.grp$results
-#fit.white.grp$results
-
-# use training model to predict y
-y.pred.red.grp <- predict(fit.red.grp, x.test.red)
-y.pred.white.grp <- predict(fit.white.grp, x.test.white)
-
-# results of rf on test data
-cM.red.grp = confusionMatrix(data=y.pred.red.grp, reference=y.test.red.grp)
-cM.white.grp = confusionMatrix(data=y.pred.white.grp, reference=y.test.white.grp)
-
-# classification results (into quality score)
-#cM.red.grp$table
-class.red.grp <- as.data.frame(cM.red.grp$table)
-class.red.grp$Freq[class.red.grp$Freq == 0] <-NA
-
-#cM.white.grp$table
-class.white.grp <- as.data.frame(cM.white.grp$table)
-class.white.grp$Freq[class.white.grp$Freq == 0] <-NA
-
-# classification results as a plot
-cmPlot(class.red.grp, "red", pred_first = TRUE,
-"RF Classification of Grouped Quality for Red Wines", axis.title.size = 20, axis.text.size = 25)
-#cmPlot(class.white.grp, "white", pred_first = TRUE,
-#       "RF Classification of Grouped Quality for White Wines")
-
-# prediction accuracy by category
-pred.red.grp <- round(diag(cM.red.grp$table)/table(y.test.red.grp), 4)*100
-pred.white.grp <- round(diag(cM.white.grp$table)/table(y.test.white.grp), 4)*100
-
-# prediction accuracy and kappa
-res.red.grp = round(cM.red.grp$overall[1:2], 4)
-res.red.grp[1] = res.red.grp[1]*100
-res.white.grp = round(cM.white.grp$overall[1:2], 4)
-res.white.grp[1] = res.white.grp[1]*100
-
-# weighted kappas
-wk.red.grp <- round(cohen.kappa(cM.red.grp$table)$weighted.kappa, 4)
-wk.white.grp <- round(cohen.kappa(cM.white.grp$table)$weighted.kappa, 4)
-```
-## Results: Random Forests (grouped white wine quality classification)
-```{r white.rf.grouped,echo=FALSE, message=FALSE, warning=FALSE}
-cmPlot(class.white.grp, "white", pred_first = TRUE,
-"RF Classification of Grouped Quality for White Wines", axis.title.size = 20, axis.text.size = 25)
-```
-
-## Results: Random Forests with Subsampling (grouped red wine quality classification)
-```{r red.rf.grouped.ss,echo=FALSE, message=FALSE, warning=FALSE}
-# subsmaple training data based on minimum within group count
-train.red.grp <- cbind(x.train.red, y.train.red.grp)
-ns.red <- min(table(train.red.grp$y.train.red.grp))
-train.red.grp.ss <- train.red.grp %>% group_by(y.train.red.grp) %>% sample_n(ns.red)
-x.train.red.grp.ss <- as.data.frame(train.red.grp.ss[,1:11], ncol=11)
-y.train.red.grp.ss <- factor(train.red.grp.ss$y.train.red.grp)
-
-train.white.grp <- cbind(x.train.white, y.train.white.grp)
-ns.white <- min(table(train.white.grp$y.train.white.grp))
-train.white.grp.ss <- train.white.grp %>% group_by(y.train.white.grp) %>% sample_n(ns.white)
-x.train.white.grp.ss <- as.data.frame(train.white.grp.ss[,1:11], ncol=11)
-y.train.white.grp.ss <- factor(train.white.grp.ss$y.train.white.grp)
-
-# train random forest
-fit.red.grp.ss <- train(x.train.red.grp.ss, y.train.red.grp.ss, method="rf", trControl=trCtl)
-fit.white.grp.ss <- train(x.train.white.grp.ss, y.train.white.grp.ss, method="rf", trControl=trCtl)
-
-# random forest training results
-#fit.red.grp.ss$results
-#fit.white.grp.ss$results
-
-# use training model to predict y
-y.pred.red.grp.ss <- predict(fit.red.grp.ss, x.test.red)
-y.pred.white.grp.ss <- predict(fit.white.grp.ss, x.test.white)
-
-# results of rf on test data
-cM.red.grp.ss <- confusionMatrix(data=y.pred.red.grp.ss, reference=y.test.red.grp)
-cM.white.grp.ss <- confusionMatrix(data=y.pred.white.grp.ss, reference=y.test.white.grp)
-
-# classification results (into quality score)
-#cM.red.grp.ss$table
-class.red.grp.ss <- as.data.frame(cM.red.grp.ss$table)
-class.red.grp.ss$Freq[class.red.grp.ss$Freq == 0] <-NA
-
-#cM.white.grp.ss$table
-class.white.grp.ss <- as.data.frame(cM.white.grp.ss$table)
-class.white.grp.ss$Freq[class.white.grp.ss$Freq == 0] <-NA
-
-# classification results as a plot
-cmPlot(class.red.grp.ss, "red", pred_first = TRUE,
-"RF Classification of Grouped Quality for Red Wines \n Subsampled by Group", axis.title.size = 20, axis.text.size = 25)
-# cmPlot(class.white.grp.ss, "white", pred_first = TRUE,
-#        "RF Classification of Grouped Quality for White Wines \n Subsampled by Group")
-
-# prediction accuracy by category
-pred.red.grp.ss <- round(diag(cM.red.grp.ss$table)/table(y.test.red.grp), 4)*100
-pred.white.grp.ss <- round(diag(cM.white.grp.ss$table)/table(y.test.white.grp), 4)*100
-
-# prediction accuracy and kappa
-res.red.grp.ss <- round(cM.red.grp.ss$overall[1:2],4)
-res.red.grp.ss[1] = res.red.grp.ss[1]*100
-res.white.grp.ss <- round(cM.white.grp.ss$overall[1:2],4)
-res.white.grp.ss[1] = res.white.grp.ss[1]*100
-
-# weighted kappas
-wk.red.grp.ss <- round(cohen.kappa(cM.red.grp.ss$table)$weighted.kappa, 4)
-wk.white.grp.ss <- round(cohen.kappa(cM.white.grp.ss$table)$weighted.kappa, 4)
-
-```
-
-## Results: Random Forests with Subsampling (grouped red wine quality classification)
-
-```{r white.rf.grouped.ss,echo=FALSE, message=FALSE, warning=FALSE}
-cmPlot(class.white.grp.ss, "white", pred_first = TRUE,
-"RF Classification of Grouped Quality for White Wines \n Subsampled by Group", axis.title.size = 20, axis.text.size = 25)
-```
-
-## Comparison of Results: Red Wine, Ungrouped
+## Comparison of Results: Red Wine
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #-----------------------------------------------------------------------------#
 #-----------------------------------------------------------------------------#
@@ -911,36 +765,14 @@ results.red['Linear Regression', ] <- c(linracc, round(rklin$kappa,4), round(rkl
 
 #-----------------------------------------------------------------------------#
 # WHITE WINE NO GROUPING
-results.white <- setNames(data.frame(matrix(ncol = 10, nrow = 6)),
+results.white <- setNames(data.frame(matrix(ncol = 10, nrow = 4)),
 c("Prediction Accuracy", "Kappa", "Weighted Kappa", "3", "4", "5", "6", "7", "8", "9"))
-rownames(results.white) <- c("Random Forest", "Proportional Odds", "Partial Proportional Odds","Non-Proportional Odds", "Multinomial", "Linear Regression")
+rownames(results.white) <- c("Random Forest", "Proportional Odds", "Multinomial", "Linear Regression")
 
 results.white[1,] <- c(res.white, pred.white, wk.white)
 results.white[2, ] <- white.prop.odds.metrics 
 results.white["Multinomial", ] <- multinomial_white_best_model_results
 results.white['Linear Regression', ] <- c(linwacc, round(wklin$kappa,4), round(wklin$weighted.kappa,4),linwpred)
-
-
-#-----------------------------------------------------------------------------#
-# RED WINE WITH GROUPING
-results.red.grp <- setNames(data.frame(matrix(ncol = 6, nrow = 5)),
-c("Prediction Accuracy", "Kappa", "Weighted Kappa", "Low", "Mid", "High"))
-rownames(results.red.grp) <- c("Random Forest", "RF Subsampled",
-"Method 3", "Method 4", "Method 5")
-
-results.red.grp[1,] <- c(res.red.grp, pred.red.grp, wk.red.grp)
-results.red.grp[2,] <- c(res.red.grp.ss, pred.red.grp.ss, wk.red.grp.ss)
-
-
-#-----------------------------------------------------------------------------#
-# WHITE WINE WITH GROUPING
-results.white.grp <- setNames(data.frame(matrix(ncol = 6, nrow = 5)),
-c("Prediction Accuracy", "Kappa", "Weighted Kappa", "Low", "Mid", "High"))
-rownames(results.white.grp) <- c("Random Forest", "RF Subsampled",
-"Method 3", "Method 4", "Method 5")
-
-results.white.grp[1,] <- c(res.white.grp, pred.white.grp, wk.white.grp)
-results.white.grp[2,] <- c(res.white.grp.ss, pred.white.grp.ss, wk.white.grp.ss)
 
 #-----------------------------------------------------------------------------#
 # Print out comparison tables created above
@@ -952,7 +784,7 @@ kable_styling(latex_options = c("repeat_header", "scale_down"))
 #-----------------------------------------------------------------------------#
 ```
 
-## Comparison of Results: White Wine, Ungrouped
+## Comparison of Results: White Wine
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 # Print out comparison tables created above
 
@@ -962,24 +794,9 @@ add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 7
 kable_styling(latex_options = c("repeat_header", "scale_down"))
 ```
 
-## Comparison of Results: Red Wine, Grouped
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-# Red wine grouped
-kable(results.red.grp, caption = "Comparison of Results for Red Wine with Grouped Quality", booktabs=T) %>%
-add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 3)) %>%
-kable_styling(latex_options = c("repeat_header", "scale_down"))
-```
-
-## Comparison of Results: White Wine, Grouped
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-# White wine grouped
-kable(results.white.grp, caption = "Comparison of Results for White Wine with Grouped Quality", booktabs=T) %>%
-add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 3)) %>%
-kable_styling(latex_options = c("repeat_header", "scale_down"))
-```
-
 ## Discussion   
-(about interpretation or possible future directions) 
+
+* 
 
 
 
