@@ -1,7 +1,7 @@
 ---
 title: "sommelieR"
 author: "Seoyoon Cho, Paloma Hauser, Taylor Lagler, Mike Nodzenski, Bryce Rowland"
-date: "4/10/2019"
+date: "4/24/2019"
 output: 
   beamer_presentation:
     color: "seahorse"
@@ -163,7 +163,7 @@ levels(y.test.white.grp)[3:5] <- "high"
 
 ## Introduction
 
-* Wine tasting can range range from a casual pastime to a lucrative profession
+* Wine tasting can range from a casual pastime to a lucrative profession
 * For professional sommeliers, considerable time and training is required to adequately rate wine quality 
 * Intuitively, we might expect expert ratings to reflect the underlying chemical composition of the wines 
 * We decided to more formally investigate this idea 
@@ -245,7 +245,7 @@ grid.arrange(
 ```
 
 ## Correlations- Red Wine
-```{r red.correlations, echo=FALSE, fig.align='center', message=FALSE, warning=FALSE}
+```{r red.correlations, echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, out.width='100%'}
 # correlations and p-values by variable pairs
 rcor_red <-rcorr(as.matrix(red_all[,1:11]))
 
@@ -255,7 +255,7 @@ corrplot(rcor_red$r, type="upper", order="hclust", tl.col = "black",
 ```
 
 ## Correlations- White Wine
-```{r white.correlations, echo=FALSE, fig.align='center', message=FALSE, warning=FALSE}
+```{r white.correlations, echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, out.width='100%'}
 # correlations and p-values by variable pairs
 rcor_white <-rcorr(as.matrix(white_all[,1:11]))
 
@@ -825,6 +825,7 @@ kable_styling(latex_options = c("repeat_header", "scale_down"))
 * The likelihood based approaches performed more poorly, with accuracies 10-15% lower than random forest and weighted kappas 0.1 to 0.2 lower
 * Even so, the weighted kappas all suggested moderate agreement with the expert ratings and were clearly better than random guessing
 * There was not a clear winner among the likelihood based approaches, accuracies and kappas were very similar across multinomial, ordinal, and linear regression models
+  + However, linear model showed a tendency to predict as a mean value, which resulted in poor prediction other than the middle quality categories
   + Accounting for the ordered nature of the ratings did not make a difference in predictions 
   + In some cases, doing so actually resulted in (slightly) worse predictive performance
   
