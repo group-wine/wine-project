@@ -305,7 +305,9 @@ Three different approaches were considered:
 
 ## Methods: Random Forest
 
-* Something here describing the random forest approach
+* Ensembles of decision trees which are built by bootstrapping the observations
+* Final prediction is made by a majority vote of the ensemble of trees
+
 
 ## Variable Selection
 
@@ -670,13 +672,17 @@ multinom_white_best_cm$Freq[multinom_white_best_cm$Freq == 0] <-NA
 cmPlot(multinom_white_best_cm, "white", pred_first = T, title = "Multinomial Regression Confused\n on Non-Average Wines", axis.title.size = 20, axis.text.size = 25)
 ```
 
-## Results: Random Forests (Red Wine)
+## Results: Random Forest
 ```{r red.rf, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE}
 #source("./R/cmPlot_function.R") # required to plot CMs
 # train random forest
 trCtl <- trainControl(savePredictions=TRUE)
-fit.red <- train(x.train.red, y.train.red, method="rf", trControl=trCtl)
-fit.white <- train(x.train.white, y.train.white, method="rf", trControl=trCtl)
+#fit.red <- train(x.train.red, y.train.red, method="rf", trControl=trCtl)
+#fit.white <- train(x.train.white, y.train.white, method="rf", trControl=trCtl)
+# saveRDS(fit.red, "rf_models/rf_red_fit.rds")
+# saveRDS(fit.white, "rf_models/rf_white_fit.rds")
+fit.red <- readRDS("rf_models/rf_red_fit.rds")
+fit.white <- readRDS("rf_models/rf_white_fit.rds")
 
 # random forest training results
 #fit.red$results
@@ -712,11 +718,20 @@ res.white[1] = res.white[1]*100
 # weighted kappas
 wk.red <- round(cohen.kappa(cM.red$table)$weighted.kappa, 4)
 wk.white <- round(cohen.kappa(cM.white$table)$weighted.kappa, 4)
-```
 
-* Accuracy: `r res.red[1]`%
-* Kappa: `r res.red[2]`
-* Weighted Kappa: `r wk.red`
+# print results
+rf.results <- setNames(data.frame(matrix(ncol = 10, nrow = 2)),
+c("Prediction Accuracy", "Kappa", "Weighted Kappa", "3", "4", "5", "6", "7", "8", "9"))
+rownames(rf.results) <- c("Red Wine", "White Wine")
+
+pred.red2 <- c(pred.red, NA)
+rf.results[1,] <- c(res.red, wk.red, pred.red2)
+rf.results[2,] <- c(res.white, wk.white, pred.white)
+
+kable(rf.results, caption = "Random Forest Results for Red and White Wine", booktabs=T, digits = 4) %>%
+add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 7)) %>%
+kable_styling(latex_options = c("repeat_header", "scale_down"))
+```
 
 ## Results: Random Forests (Red Wine)
 
@@ -755,7 +770,7 @@ c("Prediction Accuracy", "Kappa", "Weighted Kappa", "3", "4", "5", "6", "7", "8"
 rownames(results.red) <- c("Random Forest", "Proportional Odds", "Partial Proportional Odds",
                            "Non-Proportional Odds", "Multinomial", "Linear Regression")
 
-results.red[1,] <- c(res.red, pred.red, wk.red)
+results.red[1,] <- c(res.red, wk.red, pred.red)
 results.red[2, ] <- red.prop.odds.metrics
 results.red[3, ] <- red.partial.prop.metrics
 results.red[4, ] <- red.non.prop.odds.metrics
@@ -769,7 +784,7 @@ results.white <- setNames(data.frame(matrix(ncol = 10, nrow = 4)),
 c("Prediction Accuracy", "Kappa", "Weighted Kappa", "3", "4", "5", "6", "7", "8", "9"))
 rownames(results.white) <- c("Random Forest", "Proportional Odds", "Multinomial", "Linear Regression")
 
-results.white[1,] <- c(res.white, pred.white, wk.white)
+results.white[1,] <- c(res.white, wk.white, pred.white)
 results.white[2, ] <- white.prop.odds.metrics 
 results.white["Multinomial", ] <- multinomial_white_best_model_results
 results.white['Linear Regression', ] <- c(linwacc, round(wklin$kappa,4), round(wklin$weighted.kappa,4),linwpred)
