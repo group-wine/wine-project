@@ -408,7 +408,7 @@ cmPlot(linwclass, "white", pred_first = TRUE,
 
 ## Results: Partial Proportional Odds Model (White Wine)
 
-```{r, echo=F, warning=F, message = F, results = 'hide'}
+```{r, echo=F, warning=F, message = F, results = 'hide', eval=F}
 beta.starts <- coef(lm(quality ~ alcohol+ pH + volatile.acidity + residual.sugar,
                        data = white_train))
 
@@ -417,6 +417,16 @@ white.prop.odds <- partial.prop.odds.mod(y ="quality", in.data = white_train,
                               prop.odds.formula = ~ alcohol+ pH + volatile.acidity + residual.sugar,
                               beta.prop.odds.start = beta.starts[c(2:5)],
                               method = "BFGS")
+saveRDS(white.prop.odds, "proportional_odds_models/white.prop.odds.rds")
+
+
+```
+
+```{r, echo=F, warning=F, message = F, results = 'hide'}
+#load saved models 
+white.prop.odds <- readRDS("proportional_odds_models/white.prop.odds.rds")
+
+#predict values 
 white.preds <- predict(white.prop.odds, white_test)$most.likely
 
 #compare to actual values  
@@ -455,7 +465,7 @@ cmPlot(white.pred.table, "white", pred_first = T, title = "Proportional Odds Mod
 * Proportional, partial proportional, and and non-proportional odds models all converged
 * Results presented for partial proportional model with coefficient for total sulfur dioxide allowed to vary with the level of wine quality
 
-```{r,echo=F, warning=F, message = F, results='hide'}
+```{r,echo=F, warning=F, message = F, results='hide', eval=F}
 
 beta.starts <- coef(lm(quality ~ alcohol+ pH + volatile.acidity + sulphates + total.sulfur.dioxide,
                        data = red_train))
@@ -467,6 +477,35 @@ red.partial.prop <- partial.prop.odds.mod(y ="quality", in.data = red_train,
                               non.prop.odds.formula = ~total.sulfur.dioxide,
                               beta.non.prop.odds.start = matrix(rep(beta.starts[6], 5), nrow = 1),
                               method = "BFGS")
+
+#proportional odds model
+red.prop.odds <- partial.prop.odds.mod(y ="quality", in.data = red_train,
+                              prop.odds.formula = ~ alcohol + pH + volatile.acidity + sulphates
+                              + total.sulfur.dioxide,
+                              beta.prop.odds.start = beta.starts[2:6],
+                              method = "BFGS")
+
+#all non-proportional 
+red.non.prop <- partial.prop.odds.mod(y ="quality", in.data = red_train,
+                              non.prop.odds.formula = ~ alcohol + pH+ volatile.acidity + sulphates
+                              + total.sulfur.dioxide,
+                              beta.non.prop.odds.start = matrix(rep(beta.starts[2:6], each = 5), nrow = 5, 
+                                                                byrow = T),
+                              method = "BFGS")
+saveRDS(red.partial.prop, "proportional_odds_models/red.partial.prop.rds")
+saveRDS(red.prop.odds, "proportional_odds_models/red.prop.odds.rds")
+saveRDS(red.non.prop, "proportional_odds_models/red.non.prop.rds")
+
+```
+
+```{r,echo=F, warning=F, message = F, results='hide'}
+
+#load saved models 
+red.partial.prop <- readRDS("proportional_odds_models/red.partial.prop.rds")
+red.prop.odds <- readRDS("proportional_odds_models/red.prop.odds.rds")
+red.non.prop <- readRDS("proportional_odds_models/red.non.prop.rds")
+
+#partial proportional odds model predictions/metrics
 red.partial.prop.preds <- predict(red.partial.prop, red_test)$most.likely
 red.partial.prop.preds.table <- data.frame(table(factor(red.partial.prop.preds, levels = sort(unique(red.obs))), red.obs))
 red.partial.prop.level.accuracy <- sapply(sort(unique(red.obs)), function(x){
@@ -484,13 +523,7 @@ red.partial.prop.wkappa <- cohen.kappa(cbind(red.partial.prop.preds, red.obs))$w
 red.partial.prop.metrics <- c(red.partial.prop.accuracy, red.partial.prop.kappa, red.partial.prop.wkappa,
                               red.partial.prop.level.accuracy)
 
-
-#proportional odds model
-red.prop.odds <- partial.prop.odds.mod(y ="quality", in.data = red_train,
-                              prop.odds.formula = ~ alcohol + pH + volatile.acidity + sulphates
-                              + total.sulfur.dioxide,
-                              beta.prop.odds.start = beta.starts[2:6],
-                              method = "BFGS")
+#proportional odds model predictions/metrics
 red.prop.odds.preds <- predict(red.prop.odds, red_test)$most.likely
 
 red.prop.odds.table <- data.frame(table(factor(red.prop.odds.preds, levels = sort(unique(red.obs))), red.obs))
@@ -508,13 +541,7 @@ red.prop.odds.kappa <- cohen.kappa(cbind(red.prop.odds.preds, red.obs))$kappa
 red.prop.odds.wkappa <- cohen.kappa(cbind(red.prop.odds.preds, red.obs))$weighted.kappa
 red.prop.odds.metrics <- c(red.prop.odds.accuracy, red.prop.odds.kappa, red.prop.odds.wkappa, red.prop.odds.level.accuracy)
 
-#all non-proportional 
-red.non.prop <- partial.prop.odds.mod(y ="quality", in.data = red_train,
-                              non.prop.odds.formula = ~ alcohol + pH+ volatile.acidity + sulphates
-                              + total.sulfur.dioxide,
-                              beta.non.prop.odds.start = matrix(rep(beta.starts[2:6], each = 5), nrow = 5, 
-                                                                byrow = T),
-                              method = "BFGS")
+#non-proportional odds predictions/metrics
 red.non.prop.preds <- predict(red.non.prop, red_test)$most.likely
 red.non.prop.accuracy <- 100*sum(red.non.prop.preds == red.obs)/length(red.obs)
 red.non.prop.kappa <- cohen.kappa(cbind(red.non.prop.preds, red.obs))$kappa
@@ -740,12 +767,6 @@ kable_styling(latex_options = c("repeat_header", "scale_down"))
 cmPlot(class.red, "red", pred_first = TRUE,
 "RF Classification of Quality for Red Wines", axis.title.size = 20, axis.text.size = 25)
 ```
-
-## Results: Random Forests (White Wine)
-
-* Accuracy: `r res.white[1]`%
-* Kappa: `r res.white[2]`
-* Weighted Kappa: `r wk.white`
 
 ## Results: Random Forests (White Wine)
 
