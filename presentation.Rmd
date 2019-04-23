@@ -175,12 +175,12 @@ To determine how accurately expert wine quality ratings can be predicted using a
 ## Data
 
 * 2 datasets of  expert quality ratings of red and white Vinho Verde wines 
-  + source: http://archive.ics.uci.edu/ml/datasets/wine+quality
-  + `r nrow(red_test) + nrow(red_train)` red wines 
-  + `r nrow(white_test) + nrow(white_train)` white wines 
+    + source: http://archive.ics.uci.edu/ml/datasets/wine+quality
+    + `r nrow(red_test) + nrow(red_train)` red wines 
+    + `r nrow(white_test) + nrow(white_train)` white wines 
 * Outcome variable: wine quality
     + ordinal variable theoretically ranging from 0-10
-      - Observed ratings range from 3-9 
+        - Observed ratings range from 3-9 
     + 0 is poor, 10 is excellent 
     + classes are unbalanced
 * Predictor variables: 11 physiochemical wine components:
@@ -267,16 +267,16 @@ corrplot(rcor_white$r, type="upper", order="hclust", tl.col = "black",
 ## Methods
 
 * The red and white wine datasets were split into training and testing sets
-  + 80% of available data sampled for training models
-  + Remaining 20% used to evaluate accuracy
-  + Relative frequencies of quality ratings in full dataset were preserved in training and testing data 
+    + 80% of available data sampled for training models
+    + Remaining 20% used to evaluate accuracy
+    + Relative frequencies of quality ratings in full dataset were preserved in training and testing data 
 * Modeling Approach
-  + Machine learning
-    - Random forest classification of quality ratings 
-  + Likelihood based 
-    - linear regression 
-    - partial proportional odds model 
-    - multinomial model 
+    + Machine learning
+        - Random forest classification of quality ratings 
+    + Likelihood based 
+        - linear regression 
+        - partial proportional odds model 
+        - multinomial model 
 
 ## Methods: Linear Regression 
 
@@ -313,25 +313,25 @@ Three different approaches were considered:
 
 * Random Forest: all physiochemical variables included  
 * Likelihood based models:
-  + We examined the correlations between predictors and considered best subsets found in R based on linear regression.
-  + The final predictor variables selected were:
-    - red wine: volatile acidity, total sulfur dioxide, pH, alcohol, sulphates
-    - white wine: pH, volatile_acidity, residual_sugar, alcohol
+    + We examined the correlations between predictors and considered best subsets found in R based on linear regression.
+    + The final predictor variables selected were:
+        - red wine: volatile acidity, total sulfur dioxide, pH, alcohol, sulphates
+        - white wine: pH, volatile_acidity, residual_sugar, alcohol
     
 ## Model Evaluation 
 
 Models were compared on the following metrics:
 
 * Accuracy
-  + Correct Classifications/Total 
+    + Correct Classifications/Total 
 * Kappa 
 * Weighted Kappa - used to select the final model
-  + A more useful version of Kappa for data with inherent ordering that penalizes misclassifications proportional to the distance from the true category.
-  + For instance, when the true quality rating is 4, a prediction of 7 will be penalized more severely than a prediction of 5. 
+    + A more useful version of Kappa for data with inherent ordering that penalizes misclassifications proportional to the distance from the true category.
+    + For instance, when the true quality rating is 4, a prediction of 7 will be penalized more severely than a prediction of 5. 
   
 ## Results: Linear Model 
 ```{r redlinplot, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
-lllin = function(color) {
+lllin = function(color,full=FALSE) {
   if (color=='red') {
     beta = c('volatile.acidity', 'total.sulfur.dioxide','pH','alcohol','sulphates')
     test = red_test ; train = red_train
@@ -340,7 +340,12 @@ lllin = function(color) {
     test = white_test ; train = white_train
   }
   
-  dat = train[,which(names(train)%in% c(beta,'quality'))]
+  if (full) {
+    dat = train
+  } else {
+    dat = train[,which(names(train)%in% c(beta,'quality'))]  
+  }
+  
   fit = linear.mod(dat)
   betahat = fit$betahat
   
@@ -381,17 +386,43 @@ linwacc = round(linwhiteCM$overall['Accuracy'], 4) * 100
 wklin = wkappa(linwhiteCM$table)
 rklin = wkappa(linredCM$table)
 
-```
+## FULL
+linrfull = linrffac = lllin('red',full=TRUE) ; linwfull = linwffac = lllin('white',full=TRUE) 
+linrffac$real = factor(linrfull$real)
+linrffac$pred = factor(linrfull$pred, levels=levels(linrffac$real))
+linwffac$real = factor(linwfull$real)
+linwffac$pred = factor(linwfull$pred, levels=levels(linwffac$real))
 
-* Red Wine
-  + Accuracy: `r linracc`
-  + Kappa: `r round(rklin$kappa,4)`
-  + Weighted Kappa: `r round(rklin$weighted.kappa,4)`
-  
-* White Wine
-  + Accuracy: `r linwacc`
-  + Kappa: `r round(wklin$kappa,4)`
-  + Weighted Kappa: `r round(wklin$weighted.kappa,4)`
+linrfCM = confusionMatrix(data=linrffac$pred, reference=linrffac$real)
+linwfCM = confusionMatrix(data=linwffac$pred, reference=linwffac$real)
+
+# classification results (into quality score)
+# For TABLE
+# prediction accuracy by category
+linrfpred <- round(diag(linrfCM$table)/table(linrffac$real), 4)*100
+linwfpred <- round(diag(linwfCM$table)/table(linwffac$real), 4)*100
+
+# prediction accuracy and kappa
+linrfacc = round(linrfCM$overall['Accuracy'], 4) * 100
+linwfacc = round(linwfCM$overall['Accuracy'], 4) * 100
+
+# weighted kappas
+wfklin = wkappa(linwfCM$table)
+rfklin = wkappa(linrfCM$table)
+
+lmresults <- setNames(data.frame(matrix(ncol = 10, nrow = 4)),
+c("Accuracy", "Kappa", "Weighted Kappa", "3", "4", "5", "6", "7", "8","9"))
+rownames(lmresults) <- c("Full (Red)","Reduced (Red)", "Full (White)", "Reduced (White)")
+lmresults[1,] = c(linrfacc, round(rfklin$kappa,4), round(rfklin$weighted.kappa,4),linrfpred,NA)
+lmresults[2,] = c(linracc, round(rklin$kappa,4), round(rklin$weighted.kappa,4),linrpred,NA)
+lmresults[3,] = c(linwfacc, round(wfklin$kappa,4), round(wfklin$weighted.kappa,4),linwfpred)
+lmresults[4,] = c(linwacc, round(wklin$kappa,4), round(wklin$weighted.kappa,4),linwpred)
+
+kable(lmresults, caption = "Comparison of Full and Reduced Linear Regression Models for Red and White Wine Quality", booktabs=T,digits = 4) %>%
+add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 6)) %>%
+kable_styling(latex_options = c("repeat_header", "scale_down"))
+
+```
 
 ## Results: Linear Model (Red Wine)
 ```{r, echo=F}
@@ -448,9 +479,9 @@ white.prop.odds.metrics <- c(white.pred.accuracy, white.pred.kappa, white.pred.w
 ```
 
 * For white wine, only the proportional odds model converged 
-  + Overall Accuracy: `r round(white.pred.accuracy, 2)`%
-  + Kappa: `r round(white.pred.kappa, 4)`
-  + Weighted Kappa: `r round(white.pred.wkappa, 4)`
+    + Overall Accuracy: `r round(white.pred.accuracy, 2)`%
+    + Kappa: `r round(white.pred.kappa, 4)`
+    + Weighted Kappa: `r round(white.pred.wkappa, 4)`
 
 ## Results: Proportional Odds Model (White Wine)
 
@@ -833,12 +864,12 @@ kable_styling(latex_options = c("repeat_header", "scale_down"))
 ## Discussion: Random Forest    
 
 * Using random forests, we were able to predict expert wine quality ratings fairly accurately using measurements of a small number of chemical components of wine
-  + White wine
-    - Accuracy: `r res.white[1]`% 
-    - Weighted Kappa: `r wk.white`
-  + Red wine
-    - Accuracy: `r res.red[1]`% 
-    - Weighted Kappa: `r wk.red`
+    + White wine
+        - Accuracy: `r res.white[1]`% 
+        - Weighted Kappa: `r wk.white`
+    + Red wine
+        - Accuracy: `r res.red[1]`% 
+        - Weighted Kappa: `r wk.red`
 * Using the proposed cutoffs from Landis and Koch, these weighted Kappa values suggest moderate to substantial agreement with the expert ratings
 
 ## Discussion: Likelihood Based Approaches
@@ -846,9 +877,9 @@ kable_styling(latex_options = c("repeat_header", "scale_down"))
 * The likelihood based approaches performed more poorly, with accuracies 10-15% lower than random forest and weighted kappas 0.1 to 0.2 lower
 * Even so, the weighted kappas all suggested moderate agreement with the expert ratings and were clearly better than random guessing
 * There was not a clear winner among the likelihood based approaches, accuracies and kappas were very similar across multinomial, ordinal, and linear regression models
-  + However, linear model showed a tendency to predict as a mean value, which resulted in poor prediction other than the middle quality categories
-  + Accounting for the ordered nature of the ratings did not make a difference in predictions 
-  + In some cases, doing so actually resulted in (slightly) worse predictive performance
+    + However, linear model showed a tendency to predict as a mean value, which resulted in poor prediction other than the middle quality categories
+    + Accounting for the ordered nature of the ratings did not make a difference in predictions 
+    + In some cases, doing so actually resulted in (slightly) worse predictive performance
   
 ## Discussion: Limitations and Future Directions 
 
