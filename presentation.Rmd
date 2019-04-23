@@ -336,7 +336,7 @@ lllin = function(color,full=FALSE) {
     beta = c('volatile.acidity', 'total.sulfur.dioxide','pH','alcohol','sulphates')
     test = red_test ; train = red_train
   } else if (color=='white') {
-    beta = c('volatile.acidity', 'density','pH','alcohol','residual.sugar')
+    beta = c('volatile.acidity', 'pH','alcohol','residual.sugar')
     test = white_test ; train = white_train
   }
   
