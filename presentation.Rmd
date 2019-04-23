@@ -442,23 +442,38 @@ cmPlot(linwclass, "white", pred_first = TRUE,
 ```{r, echo=F, warning=F, message = F, results = 'hide', eval=F}
 beta.starts <- coef(lm(quality ~ alcohol+ pH + volatile.acidity + residual.sugar,
                        data = white_train))
-
-#fully proportional odds 
+#fully proportional odds, reduced model 
 white.prop.odds <- partial.prop.odds.mod(y ="quality", in.data = white_train,
                               prop.odds.formula = ~ alcohol+ pH + volatile.acidity + residual.sugar,
                               beta.prop.odds.start = beta.starts[c(2:5)],
                               method = "BFGS")
-saveRDS(white.prop.odds, "proportional_odds_models/white.prop.odds.rds")
+saveRDS(white.prop.odds, "proportional_odds_models/white.prop.odds.reduced.rds")
 
+
+#fully proportional odds, full model 
+beta.starts <- coef(lm(quality ~ alcohol+ pH + volatile.acidity + residual.sugar + fixed.acidity + citric.acid +
+                         chlorides + free.sulfur.dioxide + total.sulfur.dioxide + density + sulphates,
+                       data = white_train))
+
+white.prop.odds <- partial.prop.odds.mod(y ="quality", in.data = white_train,
+                              prop.odds.formula = ~ alcohol+ pH + volatile.acidity + residual.sugar +
+                                fixed.acidity + citric.acid + chlorides + free.sulfur.dioxide + 
+                                total.sulfur.dioxide + density + sulphates,
+                              beta.prop.odds.start = beta.starts[c(2:12)],
+                              method = "BFGS")
+
+saveRDS(white.prop.odds, "proportional_odds_models/white.prop.odds.rds")
 
 ```
 
-```{r, echo=F, warning=F, message = F, results = 'hide'}
+```{r, echo=F, warning=F, message = F}
 #load saved models 
+white.prop.odds.reduced <- readRDS("proportional_odds_models/white.prop.odds.reduced.rds")
 white.prop.odds <- readRDS("proportional_odds_models/white.prop.odds.rds")
 
 #predict values 
 white.preds <- predict(white.prop.odds, white_test)$most.likely
+white.preds.reduced <- predict(white.prop.odds.reduced, white_test)$most.likely
 
 #compare to actual values  
 white.pred.table <- data.frame(table(factor(white.preds, levels = sort(unique(white.obs))), white.obs))
@@ -476,14 +491,39 @@ white.pred.kappa <- cohen.kappa(cbind(white.preds, white.obs))$kappa
 white.pred.wkappa <- cohen.kappa(cbind(white.preds, white.obs))$weighted.kappa
 white.prop.odds.metrics <- c(white.pred.accuracy, white.pred.kappa, white.pred.wkappa,
                               white.level.accuracy)
+
+#also for reduced model 
+white.pred.table.reduced <- data.frame(table(factor(white.preds.reduced, levels = sort(unique(white.obs))), white.obs))
+white.level.accuracy.reduced <- sapply(sort(unique(white.obs)), function(x){
+  
+  target <- white.pred.table.reduced[ white.pred.table.reduced$white.obs == x, ]
+  total <- sum(target$Freq) 
+  correct <- sum(target$Freq[target$Var1 == target$white.obs])
+  100*correct/total
+  
+})
+white.pred.table.reduced$Freq[white.pred.table.reduced$Freq == 0] <- NA
+white.pred.accuracy.reduced <- 100*sum(white.preds.reduced == white.obs)/length(white.obs)
+white.pred.kappa.reduced <- cohen.kappa(cbind(white.preds.reduced, white.obs))$kappa
+white.pred.wkappa.reduced <- cohen.kappa(cbind(white.preds.reduced, white.obs))$weighted.kappa
+white.prop.odds.metrics.reduced <- c(white.pred.accuracy.reduced , white.pred.kappa.reduced,
+                                     white.pred.wkappa.reduced, white.level.accuracy.reduced)
+
+#model comp
+prop.odds.white.comp <- setNames(data.frame(matrix(ncol = 10, nrow = 2)),
+c("Prediction Accuracy", "Kappa", "Weighted Kappa", "3", "4", "5", "6", "7", "8", "9"))
+rownames(prop.odds.white.comp) <- c("Proportional Odds (F)", "Proportional Odds (R)")
+
+prop.odds.white.comp[1,] <- white.prop.odds.metrics
+prop.odds.white.comp[2, ] <- white.prop.odds.metrics.reduced
+
+kable(prop.odds.white.comp, caption = "Comparison of White Wine Proportional Odds Model Results", booktabs=T,digits = 4) %>%
+add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 7)) %>%
+kable_styling(latex_options = c("repeat_header", "scale_down"))
+
 ```
 
-* For white wine, only the proportional odds model converged 
-    + Overall Accuracy: `r round(white.pred.accuracy, 2)`%
-    + Kappa: `r round(white.pred.kappa, 4)`
-    + Weighted Kappa: `r round(white.pred.wkappa, 4)`
-
-## Results: Proportional Odds Model (White Wine)
+## Results: Proportional Odds Model (White Wine, Full)
 
 ```{r, echo=F, warning=F, message=F}
 #plotting confusion matrix 
@@ -493,39 +533,56 @@ cmPlot(white.pred.table, "white", pred_first = T, title = "Proportional Odds Mod
 
 ## Results: Partial Proportional Odds Model (Red Wine)
 
-* Proportional, partial proportional, and and non-proportional odds models all converged
+* Proportional, partial proportional models converged
 * Results presented for partial proportional model with coefficient for total sulfur dioxide allowed to vary with the level of wine quality
 
 ```{r,echo=F, warning=F, message = F, results='hide', eval=F}
 
+#reduced red wine models 
 beta.starts <- coef(lm(quality ~ alcohol+ pH + volatile.acidity + sulphates + total.sulfur.dioxide,
                        data = red_train))
 
-#partial proportional odds model
-red.partial.prop <- partial.prop.odds.mod(y ="quality", in.data = red_train,
+red.partial.prop.reduced <- partial.prop.odds.mod(y ="quality", in.data = red_train,
                               prop.odds.formula = ~ alcohol + pH+ volatile.acidity + sulphates,
                               beta.prop.odds.start = beta.starts[2:5],
                               non.prop.odds.formula = ~total.sulfur.dioxide,
                               beta.non.prop.odds.start = matrix(rep(beta.starts[6], 5), nrow = 1),
                               method = "BFGS")
 
-#proportional odds model
-red.prop.odds <- partial.prop.odds.mod(y ="quality", in.data = red_train,
+red.prop.odds.reduced <- partial.prop.odds.mod(y ="quality", in.data = red_train,
                               prop.odds.formula = ~ alcohol + pH + volatile.acidity + sulphates
                               + total.sulfur.dioxide,
                               beta.prop.odds.start = beta.starts[2:6],
                               method = "BFGS")
+saveRDS(red.partial.prop.reduced, "proportional_odds_models/red.partial.prop.reduced.rds")
+saveRDS(red.prop.odds.reduced, "proportional_odds_models/red.prop.odds.reduced.rds")
 
-#all non-proportional 
-red.non.prop <- partial.prop.odds.mod(y ="quality", in.data = red_train,
-                              non.prop.odds.formula = ~ alcohol + pH+ volatile.acidity + sulphates
-                              + total.sulfur.dioxide,
-                              beta.non.prop.odds.start = matrix(rep(beta.starts[2:6], each = 5), nrow = 5, 
-                                                                byrow = T),
+
+#full models 
+beta.starts <- coef(lm(quality ~ alcohol+ pH + volatile.acidity + residual.sugar + fixed.acidity + citric.acid +
+                         chlorides + free.sulfur.dioxide + total.sulfur.dioxide + density + sulphates,
+                       data = red_train))
+
+#partial proportional odds model
+red.partial.prop <- partial.prop.odds.mod(y ="quality", in.data = red_train,
+                              prop.odds.formula = ~ alcohol+ pH + volatile.acidity + residual.sugar +
+                                fixed.acidity + citric.acid + chlorides + free.sulfur.dioxide +
+                                density + sulphates,
+                              beta.prop.odds.start = beta.starts[c(2:9, 11:12)],
+                              non.prop.odds.formula = ~total.sulfur.dioxide,
+                              beta.non.prop.odds.start = matrix(rep(beta.starts[10], 5), nrow = 1),
                               method = "BFGS")
+
+#proportional odds model
+red.prop.odds <- partial.prop.odds.mod(y ="quality", in.data = red_train,
+                              prop.odds.formula = ~ alcohol+ pH + volatile.acidity + residual.sugar +
+                                fixed.acidity + citric.acid + chlorides + free.sulfur.dioxide +
+                                total.sulfur.dioxide + density + sulphates,
+                              beta.prop.odds.start = beta.starts[2:12],
+                              method = "BFGS")
+
 saveRDS(red.partial.prop, "proportional_odds_models/red.partial.prop.rds")
 saveRDS(red.prop.odds, "proportional_odds_models/red.prop.odds.rds")
-saveRDS(red.non.prop, "proportional_odds_models/red.non.prop.rds")
 
 ```
 
@@ -534,7 +591,10 @@ saveRDS(red.non.prop, "proportional_odds_models/red.non.prop.rds")
 #load saved models 
 red.partial.prop <- readRDS("proportional_odds_models/red.partial.prop.rds")
 red.prop.odds <- readRDS("proportional_odds_models/red.prop.odds.rds")
-red.non.prop <- readRDS("proportional_odds_models/red.non.prop.rds")
+red.partial.prop.reduced <- readRDS("proportional_odds_models/red.partial.prop.reduced.rds")
+red.prop.odds.reduced <- readRDS("proportional_odds_models/red.prop.odds.reduced.rds")
+
+#### Full models 
 
 #partial proportional odds model predictions/metrics
 red.partial.prop.preds <- predict(red.partial.prop, red_test)$most.likely
@@ -572,59 +632,79 @@ red.prop.odds.kappa <- cohen.kappa(cbind(red.prop.odds.preds, red.obs))$kappa
 red.prop.odds.wkappa <- cohen.kappa(cbind(red.prop.odds.preds, red.obs))$weighted.kappa
 red.prop.odds.metrics <- c(red.prop.odds.accuracy, red.prop.odds.kappa, red.prop.odds.wkappa, red.prop.odds.level.accuracy)
 
-#non-proportional odds predictions/metrics
-red.non.prop.preds <- predict(red.non.prop, red_test)$most.likely
-red.non.prop.accuracy <- 100*sum(red.non.prop.preds == red.obs)/length(red.obs)
-red.non.prop.kappa <- cohen.kappa(cbind(red.non.prop.preds, red.obs))$kappa
-red.non.prop.wkappa <- cohen.kappa(cbind(red.non.prop.preds, red.obs))$weighted.kappa
-red.non.prop.odds.table <- data.frame(table(factor(red.non.prop.preds, levels = sort(unique(red.obs))), red.obs))
-red.non.prop.level.accuracy <- sapply(sort(unique(red.obs)), function(x){
+#### Reduced models 
+
+#partial proportional odds 
+red.partial.prop.preds.reduced <- predict(red.partial.prop.reduced, red_test)$most.likely
+red.partial.prop.preds.table.reduced <- data.frame(table(factor(red.partial.prop.preds.reduced, levels = sort(unique(red.obs))), red.obs))
+red.partial.prop.level.accuracy.reduced <- sapply(sort(unique(red.obs)), function(x){
   
-  target <- red.non.prop.odds.table[ red.non.prop.odds.table$red.obs == x, ]
+  target <- red.partial.prop.preds.table.reduced[ red.partial.prop.preds.table.reduced$red.obs == x, ]
   total <- sum(target$Freq) 
   correct <- sum(target$Freq[target$Var1 == target$red.obs])
   100*correct/total
   
 })
-red.non.prop.odds.table$Freq[red.non.prop.odds.table$Freq == 0] <- NA
-red.non.prop.odds.metrics <- c(red.non.prop.accuracy, red.non.prop.kappa, red.non.prop.wkappa, red.non.prop.level.accuracy)
+red.partial.prop.preds.table.reduced$Freq[red.partial.prop.preds.table.reduced$Freq == 0] <- NA
+red.partial.prop.accuracy.reduced <- 100*sum(red.partial.prop.preds.reduced == red.obs)/length(red.obs)
+red.partial.prop.kappa.reduced <- cohen.kappa(cbind(red.partial.prop.preds.reduced, red.obs))$kappa
+red.partial.prop.wkappa.reduced <- cohen.kappa(cbind(red.partial.prop.preds.reduced, red.obs))$weighted.kappa
+red.partial.prop.metrics.reduced <- c(red.partial.prop.accuracy.reduced, red.partial.prop.kappa.reduced,
+                                      red.partial.prop.wkappa.reduced,red.partial.prop.level.accuracy.reduced)
 
-#comparison of methods 
-red.partial.prop.model.comp <- data.frame(Model = c("Proportional Odds", "Partial Proportional Odds",
-                                                    "Non-Proportional Odds"), 
-                                          Accuracy = c(red.prop.odds.accuracy, red.partial.prop.accuracy, 
-                                                       red.non.prop.accuracy), 
-                                          Kappa = c(red.prop.odds.kappa, red.partial.prop.kappa, 
-                                                       red.non.prop.kappa),
-                                          Weighted.Kappa = c(red.prop.odds.wkappa, red.partial.prop.wkappa, 
-                                                       red.non.prop.wkappa)) 
-colnames(red.partial.prop.model.comp) <- c("Model", "Accuracy", "Kappa", "Weighted Kappa")
+
+## proportional odds 
+red.prop.odds.preds.reduced <- predict(red.prop.odds.reduced, red_test)$most.likely
+
+red.prop.odds.table.reduced <- data.frame(table(factor(red.prop.odds.preds.reduced, levels = sort(unique(red.obs))), red.obs))
+red.prop.odds.level.accuracy.reduced <- sapply(sort(unique(red.obs)), function(x){
+  
+  target <- red.prop.odds.table.reduced[ red.prop.odds.table.reduced$red.obs == x, ]
+  total <- sum(target$Freq) 
+  correct <- sum(target$Freq[target$Var1 == target$red.obs])
+  100*correct/total
+  
+})
+red.prop.odds.table.reduced$Freq[red.prop.odds.table.reduced$Freq == 0] <- NA
+red.prop.odds.accuracy.reduced <- 100*sum(red.prop.odds.preds.reduced == red.obs)/length(red.obs)
+red.prop.odds.kappa.reduced <- cohen.kappa(cbind(red.prop.odds.preds.reduced, red.obs))$kappa
+red.prop.odds.wkappa.reduced <- cohen.kappa(cbind(red.prop.odds.preds.reduced, red.obs))$weighted.kappa
+red.prop.odds.metrics.reduced <- c(red.prop.odds.accuracy.reduced, red.prop.odds.kappa.reduced,
+                                   red.prop.odds.wkappa.reduced, red.prop.odds.level.accuracy.reduced)
+
 ```
 
 ## Results: Comparison of Partial Proportional Odds Models (Red Wine)
 
 ```{r, echo=F}
-kable(red.partial.prop.model.comp, caption = "Comparison of Partial Proportional Odds Models for Red Wine Quality",
-      digits = 4, booktabs=T)
+
+prop.odds.red.comp <- setNames(data.frame(matrix(ncol = 9, nrow = 4)),
+c("Prediction Accuracy", "Kappa", "Weighted Kappa", "3", "4", "5", "6", "7", "8"))
+rownames(prop.odds.red.comp) <- c("Proportional Odds (F)", "Proportional Odds (R)", "Partial Proportional Odds (F)", "Partial Proportional Odds (R)")
+
+prop.odds.red.comp[1,] <- red.prop.odds.metrics
+prop.odds.red.comp[2, ] <- red.prop.odds.metrics.reduced
+prop.odds.red.comp[3, ] <- red.partial.prop.metrics
+prop.odds.red.comp[4, ] <- red.partial.prop.metrics.reduced
+
+
+kable(prop.odds.red.comp, caption = "Comparison of Red Wine Proportional Odds Model Results", booktabs=T,digits = 4) %>%
+add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 6)) %>%
+kable_styling(latex_options = c("repeat_header", "scale_down"))
+
 ```
 
-## Results: Proportional Odds Model (Red Wine)
+## Results: Proportional Odds Model (Red Wine, Full)
 
 ```{r, echo=F, warning=F, message = F}
 #plotting confusion matrix 
 cmPlot(red.prop.odds.table, "red", pred_first = T, title = "Proportional Odds Predicted vs Observed", axis.title.size = 20, axis.text.size = 25)
 ```
 
-## Results: Partial Proportional Odds Model (Red Wine)
+## Results: Partial Proportional Odds Model (Red Wine, Full)
 
 ```{r, echo=F, warning=F, message = F}
 cmPlot(red.partial.prop.preds.table, "red", pred_first = T, title = "Partial Proportional Odds Predicted vs Observed", axis.title.size = 20, axis.text.size = 25)
-```
-
-## Results: Non-Proportional Odds Model (Red Wine)
-
-```{r, echo=F, warning=F, message = F}
-cmPlot(red.non.prop.odds.table, "red", pred_first = T, title = "Non-Proportional Odds Predicted vs Observed", axis.title.size = 20, axis.text.size = 25)
 ```
 
 ```{r eval=FALSE, message=F, include=FALSE, results='hide'}
@@ -826,15 +906,13 @@ cmPlot(class.white, "white", pred_first = TRUE,
 
 #-----------------------------------------------------------------------------#
 # RED WINE NO GROUPING
-results.red <- setNames(data.frame(matrix(ncol = 9, nrow = 6)),
+results.red <- setNames(data.frame(matrix(ncol = 9, nrow = 5)),
 c("Prediction Accuracy", "Kappa", "Weighted Kappa", "3", "4", "5", "6", "7", "8"))
-rownames(results.red) <- c("Random Forest", "Proportional Odds", "Partial Proportional Odds",
-                           "Non-Proportional Odds", "Multinomial", "Linear Regression")
+rownames(results.red) <- c("Random Forest", "Proportional Odds", "Partial Proportional Odds","Multinomial", "Linear Regression")
 
 results.red[1,] <- c(res.red, wk.red, pred.red)
 results.red[2, ] <- red.prop.odds.metrics
 results.red[3, ] <- red.partial.prop.metrics
-results.red[4, ] <- red.non.prop.odds.metrics
 results.red["Multinomial", ] <- multinomial_best_red_model_results
 results.red['Linear Regression', ] <- c(linracc, round(rklin$kappa,4), round(rklin$weighted.kappa,4),linrpred)
 
