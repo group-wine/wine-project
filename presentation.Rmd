@@ -311,7 +311,7 @@ Three different approaches were considered:
 
 ## Variable Selection
 
-* Random Forest: all physiochemical variables included  
+* Random Forest: all physiochemical variables included
 * Likelihood based models:
     + We examined the correlations between predictors and considered best subsets found in R based on linear regression.
     + The final predictor variables selected were:
@@ -791,7 +791,16 @@ add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 7
 kable_styling(latex_options = c("repeat_header", "scale_down"))
 ```
 
-## Results: Random Forests (Red Wine)
+## Results:  Random Forest (Variable Importance)
+```{r varimp_rf, echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, out.width='.49\\linewidth', fig.show='hold'}
+red.imp <- fit.red$finalModel$importance
+white.imp <- fit.white$finalModel$importance
+
+dotplot(sort(red.imp[,1]), xlab="Mean Decrease Gini", main="Variable Importance - Red Wine")
+dotplot(sort(white.imp[,1]), xlab="Mean Decrease Gini", main="Variable Importance - White Wine")
+```
+
+## Results: Random Forest (Red Wine)
 
 ```{r, echo=F}
 # classification results as a plot
@@ -799,7 +808,7 @@ cmPlot(class.red, "red", pred_first = TRUE,
 "RF Classification of Quality for Red Wines", axis.title.size = 20, axis.text.size = 25)
 ```
 
-## Results: Random Forests (White Wine)
+## Results: Random Forest (White Wine)
 
 ```{r white.rf, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE}
 cmPlot(class.white, "white", pred_first = TRUE,
