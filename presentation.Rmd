@@ -423,7 +423,7 @@ lmresults[2,] = c(linracc, round(rklin$kappa,4), round(rklin$weighted.kappa,4),l
 lmresults[3,] = c(linwfacc, round(wfklin$kappa,4), round(wfklin$weighted.kappa,4),linwfpred)
 lmresults[4,] = c(linwacc, round(wklin$kappa,4), round(wklin$weighted.kappa,4),linwpred)
 
-kable(lmresults, caption = "Comparison of Full and Reduced Linear Regression Models for Red and White Wine Quality", booktabs=T,digits = 4) %>%
+kable(lmresults, "latex", caption = "Comparison of Full and Reduced Linear Regression Models for Red and White Wine Quality", booktabs=T,digits = 4) %>%
 add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 6)) %>%
 kable_styling(latex_options = c("repeat_header", "scale_down"))
 
@@ -936,8 +936,11 @@ results.white['Linear Regression', ] <- c(linwacc, round(wklin$kappa,4), round(w
 #-----------------------------------------------------------------------------#
 # Print out comparison tables created above
 # Red wine no groups
-kable(results.red, caption = "Comparison of Results for Red Wine", booktabs=T,digits = 4) %>%
-add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 6)) %>%
+
+results.red %>% rownames_to_column("Model") %>%
+  arrange(desc(`Weighted Kappa`)) %>% 
+  kable(caption = "Comparison of Results for Red Wine", booktabs=T,digits = 4) %>%
+  add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 6)) %>%
 kable_styling(latex_options = c("repeat_header", "scale_down"))
 
 #-----------------------------------------------------------------------------#
@@ -948,7 +951,9 @@ kable_styling(latex_options = c("repeat_header", "scale_down"))
 # Print out comparison tables created above
 
 # White wine no groups
-kable(results.white, caption = "Comparison of Results for White Wine", booktabs=T, digits = 4) %>%
+results.white %>% rownames_to_column("Model")%>%
+  arrange(desc(`Weighted Kappa`)) %>% 
+kable(caption = "Comparison of Results for White Wine", booktabs=T, digits = 4) %>%
 add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 7)) %>%
 kable_styling(latex_options = c("repeat_header", "scale_down"))
 ```
@@ -967,7 +972,7 @@ kable_styling(latex_options = c("repeat_header", "scale_down"))
 ## Discussion: Likelihood Based Approaches
 
 * Accuracies 10-15% lower and weighted kappas 0.1 to 0.2 lower
-* No clear winner - so linear regression wins!
+* No clear winner 
     + However, the linear model showed a tendency to predict the mean value. 
     + The multinomial model had higher accuracy for lower and higher quality wines
     + Accounting for the ordered nature of the ratings did not make a difference in predictions 
