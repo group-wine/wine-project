@@ -797,7 +797,7 @@ multinomial_white_results <- bind_rows(
 colnames(multinomial_white_results)[2] <- "Accuracy"
 
 multinomial_white_results %>% 
-  kable(caption = "Comparison of Multinomial Regression Models for Red Wine Quality", 
+  kable(caption = "Comparison of Multinomial Regression Models for White Wine Quality", 
         booktabs = T, digits = 4) %>%
         kable_styling(latex_options = c("scale_down"))
 
