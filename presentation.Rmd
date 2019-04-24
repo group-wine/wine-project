@@ -336,7 +336,7 @@ We compared models on the following metrics:
   
 ## Results: Linear Model 
 ```{r redlinplot, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
-lllin = function(color,full=FALSE) {
+lllin = function(color,full=TRUE) {
   if (color=='red') {
     beta = c('volatile.acidity', 'total.sulfur.dioxide','pH','alcohol','sulphates')
     test = red_test ; train = red_train
@@ -392,7 +392,7 @@ wklin = wkappa(linwhiteCM$table)
 rklin = wkappa(linredCM$table)
 
 ## FULL
-linrfull = linrffac = lllin('red',full=TRUE) ; linwfull = linwffac = lllin('white',full=TRUE) 
+linrfull = linrffac = lllin('red',full=FALSE) ; linwfull = linwffac = lllin('white',full=FALSE) 
 linrffac$real = factor(linrfull$real)
 linrffac$pred = factor(linrfull$pred, levels=levels(linrffac$real))
 linwffac$real = factor(linwfull$real)
@@ -418,10 +418,10 @@ rfklin = wkappa(linrfCM$table)
 lmresults <- setNames(data.frame(matrix(ncol = 10, nrow = 4)),
 c("Accuracy", "Kappa", "Weighted Kappa", "3", "4", "5", "6", "7", "8","9"))
 rownames(lmresults) <- c("Full (Red)","Reduced (Red)", "Full (White)", "Reduced (White)")
-lmresults[1,] = c(linrfacc, round(rfklin$kappa,4), round(rfklin$weighted.kappa,4),linrfpred,NA)
-lmresults[2,] = c(linracc, round(rklin$kappa,4), round(rklin$weighted.kappa,4),linrpred,NA)
-lmresults[3,] = c(linwfacc, round(wfklin$kappa,4), round(wfklin$weighted.kappa,4),linwfpred)
-lmresults[4,] = c(linwacc, round(wklin$kappa,4), round(wklin$weighted.kappa,4),linwpred)
+lmresults[2,] = c(linrfacc, round(rfklin$kappa,4), round(rfklin$weighted.kappa,4),linrfpred,NA)
+lmresults[1,] = c(linracc, round(rklin$kappa,4), round(rklin$weighted.kappa,4),linrpred,NA)
+lmresults[4,] = c(linwfacc, round(wfklin$kappa,4), round(wfklin$weighted.kappa,4),linwfpred)
+lmresults[3,] = c(linwacc, round(wklin$kappa,4), round(wklin$weighted.kappa,4),linwpred)
 
 kable(lmresults, "latex", caption = "Comparison of Full and Reduced Linear Regression Models for Red and White Wine Quality", booktabs=T,digits = 4) %>%
 add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 6)) %>%
@@ -981,7 +981,7 @@ kable_styling(latex_options = c("repeat_header", "scale_down"))
 ## Discussion: Limitations and Future Directions 
 
 * We speculate some misclassification was due to failure to measure other important chemicals.
-* In the future, it would be interesting characterize how individual chemicals relate to wine quality. 
+* In the future, it would be interesting to characterize how individual chemicals relate to wine quality. 
 * There were only a small number of truly excellent wines (rating of 8 or higher) making it particularly difficult to predict these ratings. It would be worthwhile to examine whether various outlier detection algorithms are more suited to characterizing these wines than the approaches we took. 
 
 ## Bottom Line
