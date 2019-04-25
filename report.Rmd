@@ -16,9 +16,22 @@ header-includes:
 - \usepackage{threeparttable}
 ---
 
-```{r libraries, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r pressure, echo=FALSE, out.width = '25%', fig.align="center"}
+knitr::include_graphics("images/sommelieR.jpg")
+```
 
+## Introduction
+
+* Wine tasting can range from a casual pastime to a lucrative profession
+* For professional sommeliers, considerable time and training is required to adequately rate wine quality 
+* Intuitively, we might expect expert ratings to reflect the underlying chemical composition of the wines 
+
+## Project Aim
+
+To determine how accurately expert wine quality ratings can be predicted using a set of easily measured chemical components.
+
+
+```{r loadpackage, include = F}
 # create the datasets for training and testing for the group project
 set.seed(13)
 
@@ -35,40 +48,33 @@ library(kableExtra)
 library(knitr)
 library(devtools) 
 library(psych)
-
 #install sommelieR
 install_github("group-wine/sommelieR")
 library(sommelieR)
-```
 
-```{r useful_functions, include = F}
-pred_summary_stats <- function(preds, true_values, model){
-  confusion_matrix_obj <- confusionMatrix(as.factor(preds),
-                                      as.factor(true_values))
-  accuracy <- confusion_matrix_obj$overall[1]
-  kappa <- confusion_matrix_obj$overall[2]
-  wt.kappa <- cohen.kappa(confusion_matrix_obj$table)$weighted.kappa
-  
-  
-  pct_correct_by_cat <- (diag(confusion_matrix_obj$table)/table(true_values))
-  pct_correct_df <- as.data.frame(pct_correct_by_cat) %>% 
-    spread(true_values, Freq)
-  pred_sum_stats <- bind_cols("Model" = model,"Prediction Accuracy" = accuracy,Kappa = kappa, `Weighted Kappa` = wt.kappa, pct_correct_df) %>% 
-    mutate_at(.vars = vars(-c("Model", "Kappa", "Weighted Kappa")),
-              .funs = function(x){x*100})
-  return(pred_sum_stats)
-}
-
-```
-
-
-```{r setup, include = F}
 #load the datasets 
 data("red_test")
 data("red_train")
 data("white_test")
 data("white_train")
+```
 
+## Data
+
+* 2 datasets of  expert quality ratings of red and white Vinho Verde wines 
+    + source: http://archive.ics.uci.edu/ml/datasets/wine+quality
+    + `r nrow(red_test) + nrow(red_train)` red wines 
+    + `r nrow(white_test) + nrow(white_train)` white wines 
+* Outcome variable: wine quality
+    + ordinal variable theoretically ranging from 0-10
+        - Observed ratings range from 3-9 
+    + 0 is poor, 10 is excellent 
+    + classes are unbalanced
+* Predictor variables: 11 physiochemical wine components:
+    + fixed acidity, volatile acidity, citric acid, residual sugar, chlorides, free sulfur dioxide, total sulfur dioxide, density, pH, sulphates, alcohol
+
+
+```{r setup, include = F}
 white.obs <- white_test$quality
 red.obs <- red_test$quality
 
@@ -159,33 +165,28 @@ levels(y.test.white.grp)[3:5] <- "high"
 
 ```
 
-## Introduction
+```{r useful_functions, include = F}
+pred_summary_stats <- function(preds, true_values, model){
+  confusion_matrix_obj <- confusionMatrix(as.factor(preds),
+                                      as.factor(true_values))
+  accuracy <- confusion_matrix_obj$overall[1]
+  kappa <- confusion_matrix_obj$overall[2]
+  wt.kappa <- cohen.kappa(confusion_matrix_obj$table)$weighted.kappa
+  
+  
+  pct_correct_by_cat <- (diag(confusion_matrix_obj$table)/table(true_values))
+  pct_correct_df <- as.data.frame(pct_correct_by_cat) %>% 
+    spread(true_values, Freq)
+  pred_sum_stats <- bind_cols("Model" = model,"Prediction Accuracy" = accuracy,Kappa = kappa, `Weighted Kappa` = wt.kappa, pct_correct_df) %>% 
+    mutate_at(.vars = vars(-c("Model", "Kappa", "Weighted Kappa")),
+              .funs = function(x){x*100})
+  return(pred_sum_stats)
+}
 
-* Wine tasting can range from a casual pastime to a lucrative profession
-* For professional sommeliers, considerable time and training is required to adequately rate wine quality 
-* Intuitively, we might expect expert ratings to reflect the underlying chemical composition of the wines 
-* We decided to more formally investigate this idea 
-
-## Project Aim
-
-To determine how accurately expert wine quality ratings can be predicted using a set of easily measured chemical components.
-
-## Data
-
-* 2 datasets of  expert quality ratings of red and white Vinho Verde wines 
-    + source: http://archive.ics.uci.edu/ml/datasets/wine+quality
-    + `r nrow(red_test) + nrow(red_train)` red wines 
-    + `r nrow(white_test) + nrow(white_train)` white wines 
-* Outcome variable: wine quality
-    + ordinal variable theoretically ranging from 0-10
-        - Observed ratings range from 3-9 
-    + 0 is poor, 10 is excellent 
-    + classes are unbalanced
-* Predictor variables: 11 physiochemical wine components:
-    + fixed acidity, volatile acidity, citric acid, residual sugar, chlorides, free sulfur dioxide, total sulfur dioxide, density, pH, sulphates, alcohol
+```
 
 ## Looking At the Red Wine Data
-```{r red.boxplots, echo=FALSE, warning=FALSE}
+```{r red.boxplots, echo=FALSE, warning=FALSE, fig.width=9, fig.height=6, fig.align='center'}
 # red wine
 grid.arrange(
   ggplot(red_all, aes(x = quality, y = fixed_acidity)) +
@@ -214,7 +215,7 @@ grid.arrange(
 ```
 
 ## Looking At the White Wine Data
-```{r white.boxplots, echo=FALSE, warning=FALSE}
+```{r white.boxplots, echo=FALSE, warning=FALSE, fig.width=9, fig.height=6, fig.align='center'}
 # white wine
 grid.arrange(
   ggplot(white_all, aes(x = quality, y = fixed_acidity)) +
@@ -242,18 +243,17 @@ grid.arrange(
 )
 ```
 
-## Correlations- Red Wine
-```{r red.correlations, echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, out.width='100%'}
+
+## Correlations
+```{r correlations, echo=FALSE, fig.align='left', message=FALSE, warning=FALSE, out.width='80%'}
+par(mfrow=c(1,2))
 # correlations and p-values by variable pairs
 rcor_red <-rcorr(as.matrix(red_all[,1:11]))
 
 # plot of correlations
 corrplot(rcor_red$r, type="upper", order="hclust", tl.col = "black",
          p.mat = rcor_red$P, sig.level = 0.01, insig = "blank")
-```
 
-## Correlations- White Wine
-```{r white.correlations, echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, out.width='100%'}
 # correlations and p-values by variable pairs
 rcor_white <-rcorr(as.matrix(white_all[,1:11]))
 
@@ -274,7 +274,7 @@ corrplot(rcor_white$r, type="upper", order="hclust", tl.col = "black",
     + Likelihood based 
         - linear regression 
         - partial proportional odds model 
-        - multinomial model 
+        - ial model 
 
 ## Methods: Linear Regression 
 
@@ -293,13 +293,13 @@ Three different approaches were considered:
 * Log likelihood maximized using BFGS (default) or any available method in package optimx
 * Predicted classification: the rating with the highest predicted probability
 
-## Methods: Multinomial Regression
+## Methods: ial Regression
 
 * Response takes values in K classes
 * Model: $\log \frac{Pr(G = k | X = x)}{P(G = K | X = x)} = X\beta_k$ for $k = 1,...,(K-1)$
 * Predictions: $P(G = k | X = x) = \frac{\exp(X\beta_k)}{1 + \sum_{l = 1}^{K - 1}\exp(X\beta_l)},k = 1,..., K-1$
 * Considered 3 Models: All Predictors with Linear Terms, Reduced Model with Linear Terms, and Reduced Model with All Second Order Terms
-* Computational Efficiency Challenges
+* Computational Challenges
 
 ## Methods: Random Forest
 
@@ -311,14 +311,15 @@ Three different approaches were considered:
 
 * Random Forest: all physiochemical variables included
 * Likelihood based models:
-    + We examined the correlations between predictors and considered best subsets found in R based on linear regression.
-    + The final predictor variables selected were:
+    + Fit the full model and hypothesized that we could find a reduced model. 
+    + Determined by correlations between predictors and OLS best subset.
+    + Covaraites for reduced model:
         - red wine: volatile acidity, total sulfur dioxide, pH, alcohol, sulphates
         - white wine: pH, volatile_acidity, residual_sugar, alcohol
     
 ## Model Evaluation 
 
-Models were compared on the following metrics:
+We compared models on the following metrics:
 
 * Accuracy
     + Correct Classifications/Total 
@@ -328,14 +329,13 @@ Models were compared on the following metrics:
     + For instance, when the true quality rating is 4, a prediction of 7 will be penalized more severely than a prediction of 5. 
   
 ## Results: Linear Model 
-
-```{r redlinplot, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
-lllin = function(color,full=FALSE) {
+```{r redlinplot, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE}
+lllin = function(color,full=TRUE) {
   if (color=='red') {
     beta = c('volatile.acidity', 'total.sulfur.dioxide','pH','alcohol','sulphates')
     test = red_test ; train = red_train
   } else if (color=='white') {
-    beta = c('volatile.acidity', 'density','pH','alcohol','residual.sugar')
+    beta = c('volatile.acidity', 'pH','alcohol','residual.sugar')
     test = white_test ; train = white_train
   }
   
@@ -386,7 +386,7 @@ wklin = wkappa(linwhiteCM$table)
 rklin = wkappa(linredCM$table)
 
 ## FULL
-linrfull = linrffac = lllin('red',full=TRUE) ; linwfull = linwffac = lllin('white',full=TRUE) 
+linrfull = linrffac = lllin('red',full=FALSE) ; linwfull = linwffac = lllin('white',full=FALSE) 
 linrffac$real = factor(linrfull$real)
 linrffac$pred = factor(linrfull$pred, levels=levels(linrffac$real))
 linwffac$real = factor(linwfull$real)
@@ -412,52 +412,67 @@ rfklin = wkappa(linrfCM$table)
 lmresults <- setNames(data.frame(matrix(ncol = 10, nrow = 4)),
 c("Accuracy", "Kappa", "Weighted Kappa", "3", "4", "5", "6", "7", "8","9"))
 rownames(lmresults) <- c("Full (Red)","Reduced (Red)", "Full (White)", "Reduced (White)")
-lmresults[1,] = c(linrfacc, round(rfklin$kappa,4), round(rfklin$weighted.kappa,4),linrfpred,NA)
-lmresults[2,] = c(linracc, round(rklin$kappa,4), round(rklin$weighted.kappa,4),linrpred,NA)
-lmresults[3,] = c(linwfacc, round(wfklin$kappa,4), round(wfklin$weighted.kappa,4),linwfpred)
-lmresults[4,] = c(linwacc, round(wklin$kappa,4), round(wklin$weighted.kappa,4),linwpred)
+lmresults[2,] = c(linrfacc, round(rfklin$kappa,4), round(rfklin$weighted.kappa,4),linrfpred,NA)
+lmresults[1,] = c(linracc, round(rklin$kappa,4), round(rklin$weighted.kappa,4),linrpred,NA)
+lmresults[4,] = c(linwfacc, round(wfklin$kappa,4), round(wfklin$weighted.kappa,4),linwfpred)
+lmresults[3,] = c(linwacc, round(wklin$kappa,4), round(wklin$weighted.kappa,4),linwpred)
 
-kable(lmresults, caption = "Comparison of Full and Reduced Linear Regression Models for Red and White Wine Quality", booktabs=T,digits = 4) %>%
-add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 7)) %>%
+kable(lmresults, "latex", caption = "Comparison of Full and Reduced Linear Regression Models for Red and White Wine Quality", booktabs=T,digits = 4) %>%
+add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 6)) %>%
 kable_styling(latex_options = c("repeat_header", "scale_down"))
 
 ```
 
 ## Results: Linear Model (Red Wine)
-```{r, echo=F}
+```{r, echo=F, fig.align='center'}
 # classification results as a plot
 cmPlot(linrclass, "red", pred_first = TRUE,
        "Linear Model Classification of Quality for Red Wines", axis.title.size = 20, axis.text.size = 25)
 ```
 
 ## Results: Linear Model (White Wine)
-```{r whitelinplot, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE, out.width='100%'}
+```{r whitelinplot, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE}
 cmPlot(linwclass, "white", pred_first = TRUE,
       "Linear Model Classification of Quality for White Wines", axis.title.size = 20, axis.text.size = 25)
 ```
 
 ## Results: Partial Proportional Odds Model (White Wine)
 
-```{r, echo=F, warning=F, message = F, results = 'hide', eval=F}
+```{r, echo=F, warning=F, message = F, results = 'hide', eval=F, fig.align='center'}
 beta.starts <- coef(lm(quality ~ alcohol+ pH + volatile.acidity + residual.sugar,
                        data = white_train))
-
-#fully proportional odds 
+#fully proportional odds, reduced model 
 white.prop.odds <- partial.prop.odds.mod(y ="quality", in.data = white_train,
                               prop.odds.formula = ~ alcohol+ pH + volatile.acidity + residual.sugar,
                               beta.prop.odds.start = beta.starts[c(2:5)],
                               method = "BFGS")
-saveRDS(white.prop.odds, "proportional_odds_models/white.prop.odds.rds")
+saveRDS(white.prop.odds, "proportional_odds_models/white.prop.odds.reduced.rds")
 
+
+#fully proportional odds, full model 
+beta.starts <- coef(lm(quality ~ alcohol+ pH + volatile.acidity + residual.sugar + fixed.acidity + citric.acid +
+                         chlorides + free.sulfur.dioxide + total.sulfur.dioxide + density + sulphates,
+                       data = white_train))
+
+white.prop.odds <- partial.prop.odds.mod(y ="quality", in.data = white_train,
+                              prop.odds.formula = ~ alcohol+ pH + volatile.acidity + residual.sugar +
+                                fixed.acidity + citric.acid + chlorides + free.sulfur.dioxide + 
+                                total.sulfur.dioxide + density + sulphates,
+                              beta.prop.odds.start = beta.starts[c(2:12)],
+                              method = "BFGS")
+
+saveRDS(white.prop.odds, "proportional_odds_models/white.prop.odds.rds")
 
 ```
 
-```{r, echo=F, warning=F, message = F, results = 'hide'}
+```{r, echo=F, warning=F, message = F}
 #load saved models 
+white.prop.odds.reduced <- readRDS("proportional_odds_models/white.prop.odds.reduced.rds")
 white.prop.odds <- readRDS("proportional_odds_models/white.prop.odds.rds")
 
 #predict values 
 white.preds <- predict(white.prop.odds, white_test)$most.likely
+white.preds.reduced <- predict(white.prop.odds.reduced, white_test)$most.likely
 
 #compare to actual values  
 white.pred.table <- data.frame(table(factor(white.preds, levels = sort(unique(white.obs))), white.obs))
@@ -475,16 +490,41 @@ white.pred.kappa <- cohen.kappa(cbind(white.preds, white.obs))$kappa
 white.pred.wkappa <- cohen.kappa(cbind(white.preds, white.obs))$weighted.kappa
 white.prop.odds.metrics <- c(white.pred.accuracy, white.pred.kappa, white.pred.wkappa,
                               white.level.accuracy)
+
+#also for reduced model 
+white.pred.table.reduced <- data.frame(table(factor(white.preds.reduced, levels = sort(unique(white.obs))), white.obs))
+white.level.accuracy.reduced <- sapply(sort(unique(white.obs)), function(x){
+  
+  target <- white.pred.table.reduced[ white.pred.table.reduced$white.obs == x, ]
+  total <- sum(target$Freq) 
+  correct <- sum(target$Freq[target$Var1 == target$white.obs])
+  100*correct/total
+  
+})
+white.pred.table.reduced$Freq[white.pred.table.reduced$Freq == 0] <- NA
+white.pred.accuracy.reduced <- 100*sum(white.preds.reduced == white.obs)/length(white.obs)
+white.pred.kappa.reduced <- cohen.kappa(cbind(white.preds.reduced, white.obs))$kappa
+white.pred.wkappa.reduced <- cohen.kappa(cbind(white.preds.reduced, white.obs))$weighted.kappa
+white.prop.odds.metrics.reduced <- c(white.pred.accuracy.reduced , white.pred.kappa.reduced,
+                                     white.pred.wkappa.reduced, white.level.accuracy.reduced)
+
+#model comp
+prop.odds.white.comp <- setNames(data.frame(matrix(ncol = 10, nrow = 2)),
+c("Prediction Accuracy", "Kappa", "Weighted Kappa", "3", "4", "5", "6", "7", "8", "9"))
+rownames(prop.odds.white.comp) <- c("Proportional Odds (F)", "Proportional Odds (R)")
+
+prop.odds.white.comp[1,] <- white.prop.odds.metrics
+prop.odds.white.comp[2, ] <- white.prop.odds.metrics.reduced
+
+kable(prop.odds.white.comp, caption = "Comparison of White Wine Proportional Odds Model Results", booktabs=T,digits = 4) %>%
+add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 7)) %>%
+kable_styling(latex_options = c("repeat_header", "scale_down"))
+
 ```
 
-* For white wine, only the proportional odds model converged 
-    + Overall Accuracy: `r round(white.pred.accuracy, 2)`%
-    + Kappa: `r round(white.pred.kappa, 4)`
-    + Weighted Kappa: `r round(white.pred.wkappa, 4)`
+## Results: Proportional Odds Model (White Wine, Full)
 
-## Results: Proportional Odds Model (White Wine)
-
-```{r, echo=F, warning=F, message=F}
+```{r, echo=F, warning=F, message=F, fig.align='center'}
 #plotting confusion matrix 
 cmPlot(white.pred.table, "white", pred_first = T, title = "Proportional Odds Model Predicted vs Observed", axis.title.size = 20, axis.text.size = 25)
 
@@ -492,48 +532,68 @@ cmPlot(white.pred.table, "white", pred_first = T, title = "Proportional Odds Mod
 
 ## Results: Partial Proportional Odds Model (Red Wine)
 
-* Proportional, partial proportional, and and non-proportional odds models all converged
+* Proportional, partial proportional models converged
 * Results presented for partial proportional model with coefficient for total sulfur dioxide allowed to vary with the level of wine quality
 
-```{r,echo=F, warning=F, message = F, results='hide', eval=F}
+```{r,echo=F, warning=F, message = F, results='hide', eval=F, fig.align='center'}
 
+#reduced red wine models 
 beta.starts <- coef(lm(quality ~ alcohol+ pH + volatile.acidity + sulphates + total.sulfur.dioxide,
                        data = red_train))
 
-#partial proportional odds model
-red.partial.prop <- partial.prop.odds.mod(y ="quality", in.data = red_train,
+red.partial.prop.reduced <- partial.prop.odds.mod(y ="quality", in.data = red_train,
                               prop.odds.formula = ~ alcohol + pH+ volatile.acidity + sulphates,
                               beta.prop.odds.start = beta.starts[2:5],
                               non.prop.odds.formula = ~total.sulfur.dioxide,
                               beta.non.prop.odds.start = matrix(rep(beta.starts[6], 5), nrow = 1),
                               method = "BFGS")
 
-#proportional odds model
-red.prop.odds <- partial.prop.odds.mod(y ="quality", in.data = red_train,
+red.prop.odds.reduced <- partial.prop.odds.mod(y ="quality", in.data = red_train,
                               prop.odds.formula = ~ alcohol + pH + volatile.acidity + sulphates
                               + total.sulfur.dioxide,
                               beta.prop.odds.start = beta.starts[2:6],
                               method = "BFGS")
+saveRDS(red.partial.prop.reduced, "proportional_odds_models/red.partial.prop.reduced.rds")
+saveRDS(red.prop.odds.reduced, "proportional_odds_models/red.prop.odds.reduced.rds")
 
-#all non-proportional 
-red.non.prop <- partial.prop.odds.mod(y ="quality", in.data = red_train,
-                              non.prop.odds.formula = ~ alcohol + pH+ volatile.acidity + sulphates
-                              + total.sulfur.dioxide,
-                              beta.non.prop.odds.start = matrix(rep(beta.starts[2:6], each = 5), nrow = 5, 
-                                                                byrow = T),
+
+#full models 
+beta.starts <- coef(lm(quality ~ alcohol+ pH + volatile.acidity + residual.sugar + fixed.acidity + citric.acid +
+                         chlorides + free.sulfur.dioxide + total.sulfur.dioxide + density + sulphates,
+                       data = red_train))
+
+#partial proportional odds model
+red.partial.prop <- partial.prop.odds.mod(y ="quality", in.data = red_train,
+                              prop.odds.formula = ~ alcohol+ pH + volatile.acidity + residual.sugar +
+                                fixed.acidity + citric.acid + chlorides + free.sulfur.dioxide +
+                                density + sulphates,
+                              beta.prop.odds.start = beta.starts[c(2:9, 11:12)],
+                              non.prop.odds.formula = ~total.sulfur.dioxide,
+                              beta.non.prop.odds.start = matrix(rep(beta.starts[10], 5), nrow = 1),
                               method = "BFGS")
+
+#proportional odds model
+red.prop.odds <- partial.prop.odds.mod(y ="quality", in.data = red_train,
+                              prop.odds.formula = ~ alcohol+ pH + volatile.acidity + residual.sugar +
+                                fixed.acidity + citric.acid + chlorides + free.sulfur.dioxide +
+                                total.sulfur.dioxide + density + sulphates,
+                              beta.prop.odds.start = beta.starts[2:12],
+                              method = "BFGS")
+
 saveRDS(red.partial.prop, "proportional_odds_models/red.partial.prop.rds")
 saveRDS(red.prop.odds, "proportional_odds_models/red.prop.odds.rds")
-saveRDS(red.non.prop, "proportional_odds_models/red.non.prop.rds")
 
 ```
 
-```{r,echo=F, warning=F, message = F, results='hide'}
+```{r,echo=F, warning=F, message = F, results='hide', fig.align='center'}
 
 #load saved models 
 red.partial.prop <- readRDS("proportional_odds_models/red.partial.prop.rds")
 red.prop.odds <- readRDS("proportional_odds_models/red.prop.odds.rds")
-red.non.prop <- readRDS("proportional_odds_models/red.non.prop.rds")
+red.partial.prop.reduced <- readRDS("proportional_odds_models/red.partial.prop.reduced.rds")
+red.prop.odds.reduced <- readRDS("proportional_odds_models/red.prop.odds.reduced.rds")
+
+#### Full models 
 
 #partial proportional odds model predictions/metrics
 red.partial.prop.preds <- predict(red.partial.prop, red_test)$most.likely
@@ -571,63 +631,83 @@ red.prop.odds.kappa <- cohen.kappa(cbind(red.prop.odds.preds, red.obs))$kappa
 red.prop.odds.wkappa <- cohen.kappa(cbind(red.prop.odds.preds, red.obs))$weighted.kappa
 red.prop.odds.metrics <- c(red.prop.odds.accuracy, red.prop.odds.kappa, red.prop.odds.wkappa, red.prop.odds.level.accuracy)
 
-#non-proportional odds predictions/metrics
-red.non.prop.preds <- predict(red.non.prop, red_test)$most.likely
-red.non.prop.accuracy <- 100*sum(red.non.prop.preds == red.obs)/length(red.obs)
-red.non.prop.kappa <- cohen.kappa(cbind(red.non.prop.preds, red.obs))$kappa
-red.non.prop.wkappa <- cohen.kappa(cbind(red.non.prop.preds, red.obs))$weighted.kappa
-red.non.prop.odds.table <- data.frame(table(factor(red.non.prop.preds, levels = sort(unique(red.obs))), red.obs))
-red.non.prop.level.accuracy <- sapply(sort(unique(red.obs)), function(x){
+#### Reduced models 
+
+#partial proportional odds 
+red.partial.prop.preds.reduced <- predict(red.partial.prop.reduced, red_test)$most.likely
+red.partial.prop.preds.table.reduced <- data.frame(table(factor(red.partial.prop.preds.reduced, levels = sort(unique(red.obs))), red.obs))
+red.partial.prop.level.accuracy.reduced <- sapply(sort(unique(red.obs)), function(x){
   
-  target <- red.non.prop.odds.table[ red.non.prop.odds.table$red.obs == x, ]
+  target <- red.partial.prop.preds.table.reduced[ red.partial.prop.preds.table.reduced$red.obs == x, ]
   total <- sum(target$Freq) 
   correct <- sum(target$Freq[target$Var1 == target$red.obs])
   100*correct/total
   
 })
-red.non.prop.odds.table$Freq[red.non.prop.odds.table$Freq == 0] <- NA
-red.non.prop.odds.metrics <- c(red.non.prop.accuracy, red.non.prop.kappa, red.non.prop.wkappa, red.non.prop.level.accuracy)
+red.partial.prop.preds.table.reduced$Freq[red.partial.prop.preds.table.reduced$Freq == 0] <- NA
+red.partial.prop.accuracy.reduced <- 100*sum(red.partial.prop.preds.reduced == red.obs)/length(red.obs)
+red.partial.prop.kappa.reduced <- cohen.kappa(cbind(red.partial.prop.preds.reduced, red.obs))$kappa
+red.partial.prop.wkappa.reduced <- cohen.kappa(cbind(red.partial.prop.preds.reduced, red.obs))$weighted.kappa
+red.partial.prop.metrics.reduced <- c(red.partial.prop.accuracy.reduced, red.partial.prop.kappa.reduced,
+                                      red.partial.prop.wkappa.reduced,red.partial.prop.level.accuracy.reduced)
 
-#comparison of methods 
-red.partial.prop.model.comp <- data.frame(Model = c("Proportional Odds", "Partial Proportional Odds",
-                                                    "Non-Proportional Odds"), 
-                                          Accuracy = c(red.prop.odds.accuracy, red.partial.prop.accuracy, 
-                                                       red.non.prop.accuracy), 
-                                          Kappa = c(red.prop.odds.kappa, red.partial.prop.kappa, 
-                                                       red.non.prop.kappa),
-                                          Weighted.Kappa = c(red.prop.odds.wkappa, red.partial.prop.wkappa, 
-                                                       red.non.prop.wkappa)) 
-colnames(red.partial.prop.model.comp) <- c("Model", "Accuracy", "Kappa", "Weighted Kappa")
+
+## proportional odds 
+red.prop.odds.preds.reduced <- predict(red.prop.odds.reduced, red_test)$most.likely
+
+red.prop.odds.table.reduced <- data.frame(table(factor(red.prop.odds.preds.reduced, levels = sort(unique(red.obs))), red.obs))
+red.prop.odds.level.accuracy.reduced <- sapply(sort(unique(red.obs)), function(x){
+  
+  target <- red.prop.odds.table.reduced[ red.prop.odds.table.reduced$red.obs == x, ]
+  total <- sum(target$Freq) 
+  correct <- sum(target$Freq[target$Var1 == target$red.obs])
+  100*correct/total
+  
+})
+red.prop.odds.table.reduced$Freq[red.prop.odds.table.reduced$Freq == 0] <- NA
+red.prop.odds.accuracy.reduced <- 100*sum(red.prop.odds.preds.reduced == red.obs)/length(red.obs)
+red.prop.odds.kappa.reduced <- cohen.kappa(cbind(red.prop.odds.preds.reduced, red.obs))$kappa
+red.prop.odds.wkappa.reduced <- cohen.kappa(cbind(red.prop.odds.preds.reduced, red.obs))$weighted.kappa
+red.prop.odds.metrics.reduced <- c(red.prop.odds.accuracy.reduced, red.prop.odds.kappa.reduced,
+                                   red.prop.odds.wkappa.reduced, red.prop.odds.level.accuracy.reduced)
+
 ```
 
 ## Results: Comparison of Partial Proportional Odds Models (Red Wine)
 
 ```{r, echo=F}
-kable(red.partial.prop.model.comp, caption = "Comparison of Partial Proportional Odds Models for Red Wine Quality",
-      digits = 4, booktabs=T)
+
+prop.odds.red.comp <- setNames(data.frame(matrix(ncol = 9, nrow = 4)),
+c("Prediction Accuracy", "Kappa", "Weighted Kappa", "3", "4", "5", "6", "7", "8"))
+rownames(prop.odds.red.comp) <- c("Proportional Odds (F)", "Proportional Odds (R)", "Partial Proportional Odds (F)", "Partial Proportional Odds (R)")
+
+prop.odds.red.comp[1,] <- red.prop.odds.metrics
+prop.odds.red.comp[2, ] <- red.prop.odds.metrics.reduced
+prop.odds.red.comp[3, ] <- red.partial.prop.metrics
+prop.odds.red.comp[4, ] <- red.partial.prop.metrics.reduced
+
+
+kable(prop.odds.red.comp, caption = "Comparison of Red Wine Proportional Odds Model Results", booktabs=T,digits = 4) %>%
+add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 6)) %>%
+kable_styling(latex_options = c("repeat_header", "scale_down"))
+
 ```
 
-## Results: Proportional Odds Model (Red Wine)
+## Results: Proportional Odds Model (Red Wine, Full)
 
-```{r, echo=F, warning=F, message = F}
+```{r, echo=F, warning=F, message = F, fig.align='center'}
 #plotting confusion matrix 
 cmPlot(red.prop.odds.table, "red", pred_first = T, title = "Proportional Odds Predicted vs Observed", axis.title.size = 20, axis.text.size = 25)
 ```
 
-## Results: Partial Proportional Odds Model (Red Wine)
+## Results: Partial Proportional Odds Model (Red Wine, Full)
 
-```{r, echo=F, warning=F, message = F}
+```{r, echo=F, warning=F, message = F, fig.align='center'}
 cmPlot(red.partial.prop.preds.table, "red", pred_first = T, title = "Partial Proportional Odds Predicted vs Observed", axis.title.size = 20, axis.text.size = 25)
 ```
 
-## Results: Non-Proportional Odds Model (Red Wine)
-
-```{r, echo=F, warning=F, message = F}
-cmPlot(red.non.prop.odds.table, "red", pred_first = T, title = "Non-Proportional Odds Predicted vs Observed", axis.title.size = 20, axis.text.size = 25)
-```
-
 ```{r eval=FALSE, message=F, include=FALSE, results='hide'}
-#Begin Multinomial Results Section
+#Begin ial Results Section
 
 set.seed(13)
 red_train_full_fit <- fit_multinomial_regression(red_train, quality ~ 1 + ., ref_level = "8", trace = 1, itters = 300)
@@ -685,7 +765,8 @@ colnames(multinomial_red_results)[2] <- "Accuracy"
 multinomial_red_results %>% 
   kable(caption = "Comparison of Multinomial Regression Models for Red Wine Quality", 
         booktabs = T, digits = 4) %>%
-  kable_styling(latex_options = c("scale_down"))
+        add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 6)) %>%
+        kable_styling(latex_options = c("repeat_header", "scale_down"))
 
 #Remove "model" because it's not in the big table. 
 multinomial_best_red_model_results <- multinomial_red_results %>% slice(1) %>% 
@@ -693,7 +774,7 @@ multinomial_best_red_model_results <- multinomial_red_results %>% slice(1) %>%
 ```
 
 ## Results: Multinomial Regression - Full Model Confusion Matrix (Red Wine)
-```{r, echo=F, warning=F, message = F, echo=F}
+```{r, echo=F, warning=F, message = F, echo=F, fig.align='center'}
 multinom_red_best_cm <- confusionMatrix(as.factor(red_test_full_preds), as.factor(red_test$quality))$table %>% 
   as.data.frame()
 
@@ -711,9 +792,10 @@ multinomial_white_results <- bind_rows(
 colnames(multinomial_white_results)[2] <- "Accuracy"
 
 multinomial_white_results %>% 
-  kable(caption = "Comparison of Multinomial Regression Models for Red Wine Quality", 
+  kable(caption = "Comparison of Multinomial Regression Models for White Wine Quality", 
         booktabs = T, digits = 4) %>%
-        kable_styling(latex_options = c("scale_down"))
+        add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 7)) %>%
+        kable_styling(latex_options = c("repeat_header", "scale_down"))
 
 multinomial_white_best_model_results <- multinomial_white_results %>%
   slice(1) %>% 
@@ -721,7 +803,7 @@ multinomial_white_best_model_results <- multinomial_white_results %>%
 ```
 
 ## Results: Multinomial Regression - Full Model Confusion Matrix (White Wine)
-```{r, echo=F, warning=F, message = F}
+```{r, echo=F, warning=F, message = F, fig.align='center'}
 multinom_white_best_cm <- confusionMatrix(as.factor(white_test_full_preds), as.factor(white_test$quality))$table %>% 
   as.data.frame()
 
@@ -791,17 +873,17 @@ kable_styling(latex_options = c("repeat_header", "scale_down"))
 ```
 
 ## Results:  Random Forest (Variable Importance)
-```{r varimp_rf, echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, out.width='.49\\linewidth', fig.show='hold'}
+```{r varimp_rf, echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, out.width='50%'}
 red.imp <- fit.red$finalModel$importance
 white.imp <- fit.white$finalModel$importance
-
+par(mfrow=c(1,2))
 dotplot(sort(red.imp[,1]), xlab="Mean Decrease Gini", main="Variable Importance - Red Wine")
 dotplot(sort(white.imp[,1]), xlab="Mean Decrease Gini", main="Variable Importance - White Wine")
 ```
 
 ## Results: Random Forest (Red Wine)
 
-```{r, echo=F}
+```{r, echo=F, fig.align='center'}
 # classification results as a plot
 cmPlot(class.red, "red", pred_first = TRUE,
 "RF Classification of Quality for Red Wines", axis.title.size = 20, axis.text.size = 25)
@@ -825,15 +907,13 @@ cmPlot(class.white, "white", pred_first = TRUE,
 
 #-----------------------------------------------------------------------------#
 # RED WINE NO GROUPING
-results.red <- setNames(data.frame(matrix(ncol = 9, nrow = 6)),
+results.red <- setNames(data.frame(matrix(ncol = 9, nrow = 5)),
 c("Prediction Accuracy", "Kappa", "Weighted Kappa", "3", "4", "5", "6", "7", "8"))
-rownames(results.red) <- c("Random Forest", "Proportional Odds", "Partial Proportional Odds",
-                           "Non-Proportional Odds", "Multinomial", "Linear Regression")
+rownames(results.red) <- c("Random Forest", "Proportional Odds", "Partial Proportional Odds","Multinomial", "Linear Regression")
 
 results.red[1,] <- c(res.red, wk.red, pred.red)
 results.red[2, ] <- red.prop.odds.metrics
 results.red[3, ] <- red.partial.prop.metrics
-results.red[4, ] <- red.non.prop.odds.metrics
 results.red["Multinomial", ] <- multinomial_best_red_model_results
 results.red['Linear Regression', ] <- c(linracc, round(rklin$kappa,4), round(rklin$weighted.kappa,4),linrpred)
 
@@ -852,8 +932,11 @@ results.white['Linear Regression', ] <- c(linwacc, round(wklin$kappa,4), round(w
 #-----------------------------------------------------------------------------#
 # Print out comparison tables created above
 # Red wine no groups
-kable(results.red, caption = "Comparison of Results for Red Wine", booktabs=T,digits = 4) %>%
-add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 6)) %>%
+
+results.red %>% rownames_to_column("Model") %>%
+  arrange(desc(`Weighted Kappa`)) %>% 
+  kable(caption = "Comparison of Results for Red Wine", booktabs=T,digits = 4) %>%
+  add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 6)) %>%
 kable_styling(latex_options = c("repeat_header", "scale_down"))
 
 #-----------------------------------------------------------------------------#
@@ -864,14 +947,16 @@ kable_styling(latex_options = c("repeat_header", "scale_down"))
 # Print out comparison tables created above
 
 # White wine no groups
-kable(results.white, caption = "Comparison of Results for White Wine", booktabs=T, digits = 4) %>%
+results.white %>% rownames_to_column("Model")%>%
+  arrange(desc(`Weighted Kappa`)) %>% 
+kable(caption = "Comparison of Results for White Wine", booktabs=T, digits = 4) %>%
 add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 7)) %>%
 kable_styling(latex_options = c("repeat_header", "scale_down"))
 ```
 
 ## Discussion: Random Forest    
 
-* Using random forests, we were able to predict expert wine quality ratings fairly accurately using measurements of a small number of chemical components of wine
+* Using random forests, we predicted expert wine quality ratings fairly accurately
     + White wine
         - Accuracy: `r res.white[1]`% 
         - Weighted Kappa: `r wk.white`
@@ -882,17 +967,17 @@ kable_styling(latex_options = c("repeat_header", "scale_down"))
 
 ## Discussion: Likelihood Based Approaches
 
-* The likelihood based approaches performed more poorly, with accuracies 10-15% lower than random forest and weighted kappas 0.1 to 0.2 lower
-* Even so, the weighted kappas all suggested moderate agreement with the expert ratings and were clearly better than random guessing
-* There was not a clear winner among the likelihood based approaches, accuracies and kappas were very similar across multinomial, ordinal, and linear regression models
-    + However, linear model showed a tendency to predict as a mean value, which resulted in poor prediction other than the middle quality categories
+* Accuracies 10-15% lower and weighted kappas 0.1 to 0.2 lower
+* No clear winner 
+    + However, the linear model showed a tendency to predict the mean value. 
+    + The ial model had higher accuracy for lower and higher quality wines
     + Accounting for the ordered nature of the ratings did not make a difference in predictions 
-    + In some cases, doing so actually resulted in (slightly) worse predictive performance
+
   
 ## Discussion: Limitations and Future Directions 
 
-* We only had data on a small number of reasonably easy to measure chemicals, we speculate some misclassification was due to failure to measure other important chemicals.
-* Our goal was simply to predict quality ratings, in the future, it would be interesting characterize how individual chemicals relate to wine quality. 
+* We speculate some misclassification was due to failure to measure other important chemicals.
+* In the future, it would be interesting to characterize how individual chemicals relate to wine quality. 
 * There were only a small number of truly excellent wines (rating of 8 or higher) making it particularly difficult to predict these ratings. It would be worthwhile to examine whether various outlier detection algorithms are more suited to characterizing these wines than the approaches we took. 
 
 ## Bottom Line
