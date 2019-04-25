@@ -22,10 +22,8 @@ knitr::include_graphics("images/sommelieR.jpg")
 
 ## Introduction
 
-* Wine tasting can range from a casual pastime to a lucrative profession
-* For professional sommeliers, considerable time and training is required to adequately rate wine quality 
-* Intuitively, we might expect expert ratings to reflect the underlying chemical composition of the wines 
-
+  Wine tasting can range from a casual pastime to a lucrative profession. For professional sommeliers, considerable time and training is required to adequately rate wine quality. Intuitively, we expect expert ratings to reflect the underlying chemical composition of the wines. To this end, we hypothesized it would be possible to predict ratings using statistical models based on the chemical makeup of wines. 
+  
 ## Project Aim
 
 To determine how accurately expert wine quality ratings can be predicted using a set of easily measured chemical components.
@@ -274,26 +272,27 @@ corrplot(rcor_white$r, type="upper", order="hclust", tl.col = "black",
     + Likelihood based 
         - linear regression 
         - partial proportional odds model 
-        - ial model 
+        - multinoial model 
 
-## Methods: Linear Regression 
+#### Linear Regression 
 
 * $Z = X^T \beta + \epsilon$, where $\epsilon\sim N(0,\sigma^2 I)$
 * $\hat\beta = (X^T X)^{-1}X^T Z$
 * Predicted classification: The nearest integer to the predicted mean rating 
 
-## Methods: Partial Proportional Odds Models 
+#### Partial Proportional Odds Models 
 
-Three different approaches were considered:
+  To account for the ordinal nature of wine ratings without assuming continuity, we implemented three cumulative logit models: proportional odds, partial proportional odds, and non-proportional odds. Letting $Z$ correspond to level of wine rating , $i$ correspond to a specific wine, and $x_i$ correspond to the chemical components of wine i, the models are given below:     
 
-* Non-proportional odds: $logit(P(Z \leq j|x)) = \alpha_j + x^T\beta_j$
-* Proportional odds: $logit(P(Z \leq j|x)) = \alpha_j + x^T\beta$
-* Partial proportional odds: $logit(P(Z \leq j|x)) = \alpha_j + x^T_*\beta + x^T_{**}\beta_j$
-* $\alpha_j > \alpha_i$ for $j > i$
-* Log likelihood maximized using BFGS (default) or any available method in package optimx
-* Predicted classification: the rating with the highest predicted probability
+* Non-proportional odds: $logit(P(Z \leq j|x)) = \alpha_j + x_i^T\beta_j$
+* Proportional odds: $logit(P(Z \leq j|x)) = \alpha_j + x_i^T\beta$
+* Partial proportional odds: $logit(P(Z \leq j|x)) = \alpha_j + x^T_{i*}\beta + x^T_{i**}\beta_j$
 
-## Methods: ial Regression
+Where $\alpha_j > \alpha_i$ for $j > i$, and $x^T_{i*}$ and $x^T_{i**}$ are submatrices of $x_i$.
+
+  The log likelihood for each model was maximized using the BFGS algorithm as implemented in the R package optimx (alternatively, users of our R package could specify any available method implemented in optimx). For models that converged, the predicted classification was taken to be the rating with the highest predicted probability. An S3 predict method was implemented in sommelieR to facilitate these predictions. 
+
+#### Multinomial Regression
 
 * Response takes values in K classes
 * Model: $\log \frac{Pr(G = k | X = x)}{P(G = K | X = x)} = X\beta_k$ for $k = 1,...,(K-1)$
@@ -301,23 +300,23 @@ Three different approaches were considered:
 * Considered 3 Models: All Predictors with Linear Terms, Reduced Model with Linear Terms, and Reduced Model with All Second Order Terms
 * Computational Challenges
 
-## Methods: Random Forest
+#### Random Forest
 
 * Ensembles of decision trees which are built by bootstrapping the observations
 * Final prediction is made by a majority vote of the ensemble of trees
 
 
-## Variable Selection
+#### Variable Selection
 
 * Random Forest: all physiochemical variables included
 * Likelihood based models:
     + Fit the full model and hypothesized that we could find a reduced model. 
     + Determined by correlations between predictors and OLS best subset.
-    + Covaraites for reduced model:
+    + Covariates for reduced model:
         - red wine: volatile acidity, total sulfur dioxide, pH, alcohol, sulphates
         - white wine: pH, volatile_acidity, residual_sugar, alcohol
     
-## Model Evaluation 
+#### Model Evaluation 
 
 We compared models on the following metrics:
 
@@ -438,10 +437,15 @@ cmPlot(linwclass, "white", pred_first = TRUE,
 
 ## Results: Partial Proportional Odds Model (White Wine)
 
-```{r, echo=F, warning=F, message = F, results = 'hide', eval=F, fig.align='center'}
+  For models fit on the white wine training data, only proportional odds models converged to parameter estimates that produced non-negative fitted probabilities for each subject and quality rating. The code for fitting these models is given below (note that the models objects are saved to shorten the compile time for this report):
+
+```{r, echo=T, warning=F, message = F, results = 'hide', eval=F, fig.align='center'}
+
+#get starting values for model beta's
 beta.starts <- coef(lm(quality ~ alcohol+ pH + volatile.acidity + residual.sugar,
                        data = white_train))
-#fully proportional odds, reduced model 
+
+#proportional odds, reduced model 
 white.prop.odds <- partial.prop.odds.mod(y ="quality", in.data = white_train,
                               prop.odds.formula = ~ alcohol+ pH + volatile.acidity + residual.sugar,
                               beta.prop.odds.start = beta.starts[c(2:5)],
@@ -449,7 +453,7 @@ white.prop.odds <- partial.prop.odds.mod(y ="quality", in.data = white_train,
 saveRDS(white.prop.odds, "proportional_odds_models/white.prop.odds.reduced.rds")
 
 
-#fully proportional odds, full model 
+#proportional odds, full model 
 beta.starts <- coef(lm(quality ~ alcohol+ pH + volatile.acidity + residual.sugar + fixed.acidity + citric.acid +
                          chlorides + free.sulfur.dioxide + total.sulfur.dioxide + density + sulphates,
                        data = white_train))
@@ -465,7 +469,9 @@ saveRDS(white.prop.odds, "proportional_odds_models/white.prop.odds.rds")
 
 ```
 
-```{r, echo=F, warning=F, message = F}
+Then using the predict method implemented for this class, we predicted the ratings in the testing data as follows:
+
+```{r, echo=T, warning=F, message = F}
 #load saved models 
 white.prop.odds.reduced <- readRDS("proportional_odds_models/white.prop.odds.reduced.rds")
 white.prop.odds <- readRDS("proportional_odds_models/white.prop.odds.rds")
@@ -474,6 +480,11 @@ white.prop.odds <- readRDS("proportional_odds_models/white.prop.odds.rds")
 white.preds <- predict(white.prop.odds, white_test)$most.likely
 white.preds.reduced <- predict(white.prop.odds.reduced, white_test)$most.likely
 
+```
+
+The performance for the full and reduced models are given below. Notably, the full model performed better than the reduced, but only very slightly. 
+
+```{r, echo=F, warning=F, message = F}
 #compare to actual values  
 white.pred.table <- data.frame(table(factor(white.preds, levels = sort(unique(white.obs))), white.obs))
 white.level.accuracy <- sapply(sort(unique(white.obs)), function(x){
@@ -516,26 +527,25 @@ rownames(prop.odds.white.comp) <- c("Proportional Odds (F)", "Proportional Odds 
 prop.odds.white.comp[1,] <- white.prop.odds.metrics
 prop.odds.white.comp[2, ] <- white.prop.odds.metrics.reduced
 
-kable(prop.odds.white.comp, caption = "Comparison of White Wine Proportional Odds Model Results", booktabs=T,digits = 4) %>%
+kable(prop.odds.white.comp, booktabs=T,digits = 4) %>%
 add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 7)) %>%
 kable_styling(latex_options = c("repeat_header", "scale_down"))
 
 ```
 
-## Results: Proportional Odds Model (White Wine, Full)
+Likewise, the confusion matrix for the full model, using the plotting functionality implemented in our package, is given below:
 
-```{r, echo=F, warning=F, message=F, fig.align='center'}
+```{r, echo= T, warning=F, message=F, fig.align='center'}
 #plotting confusion matrix 
 cmPlot(white.pred.table, "white", pred_first = T, title = "Proportional Odds Model Predicted vs Observed", axis.title.size = 20, axis.text.size = 25)
 
 ```
 
 ## Results: Partial Proportional Odds Model (Red Wine)
+ 
+ For models fit to the red training data, both proportional and partial proportional models converged. The results presented for the partial proportional model allow the coefficient for total sulfur dioxide to vary with the level of wine quality. The code for producing these models is given below:
 
-* Proportional, partial proportional models converged
-* Results presented for partial proportional model with coefficient for total sulfur dioxide allowed to vary with the level of wine quality
-
-```{r,echo=F, warning=F, message = F, results='hide', eval=F, fig.align='center'}
+```{r,echo=T, warning=F, message = F, results='hide', eval=F, fig.align='center'}
 
 #reduced red wine models 
 beta.starts <- coef(lm(quality ~ alcohol+ pH + volatile.acidity + sulphates + total.sulfur.dioxide,
@@ -584,6 +594,8 @@ saveRDS(red.partial.prop, "proportional_odds_models/red.partial.prop.rds")
 saveRDS(red.prop.odds, "proportional_odds_models/red.prop.odds.rds")
 
 ```
+
+Predictions on the testing data were again made using our S3 predict method (code as shown for white wines). The performance of the trained models on the testing data are given below. Briefly, the proportional and partial proportional odds models performed similarly, and the full models performed very slightly better than the reduced models. 
 
 ```{r,echo=F, warning=F, message = F, results='hide', fig.align='center'}
 
@@ -673,8 +685,6 @@ red.prop.odds.metrics.reduced <- c(red.prop.odds.accuracy.reduced, red.prop.odds
 
 ```
 
-## Results: Comparison of Partial Proportional Odds Models (Red Wine)
-
 ```{r, echo=F}
 
 prop.odds.red.comp <- setNames(data.frame(matrix(ncol = 9, nrow = 4)),
@@ -687,27 +697,25 @@ prop.odds.red.comp[3, ] <- red.partial.prop.metrics
 prop.odds.red.comp[4, ] <- red.partial.prop.metrics.reduced
 
 
-kable(prop.odds.red.comp, caption = "Comparison of Red Wine Proportional Odds Model Results", booktabs=T,digits = 4) %>%
+kable(prop.odds.red.comp, booktabs=T,digits = 4) %>%
 add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 6)) %>%
 kable_styling(latex_options = c("repeat_header", "scale_down"))
 
 ```
 
-## Results: Proportional Odds Model (Red Wine, Full)
+  As with the white wines, the confusion matrices for the full proportional and partial proportional red models are shown below:
 
 ```{r, echo=F, warning=F, message = F, fig.align='center'}
 #plotting confusion matrix 
-cmPlot(red.prop.odds.table, "red", pred_first = T, title = "Proportional Odds Predicted vs Observed", axis.title.size = 20, axis.text.size = 25)
+cmPlot(red.prop.odds.table, "red", pred_first = T, title = "Proportional Odds Predicted vs Observed (Full Model)", axis.title.size = 20, axis.text.size = 25)
 ```
 
-## Results: Partial Proportional Odds Model (Red Wine, Full)
-
 ```{r, echo=F, warning=F, message = F, fig.align='center'}
-cmPlot(red.partial.prop.preds.table, "red", pred_first = T, title = "Partial Proportional Odds Predicted vs Observed", axis.title.size = 20, axis.text.size = 25)
+cmPlot(red.partial.prop.preds.table, "red", pred_first = T, title = "Partial Proportional Odds Predicted vs Observed (Full)", axis.title.size = 20, axis.text.size = 25)
 ```
 
 ```{r eval=FALSE, message=F, include=FALSE, results='hide'}
-#Begin ial Results Section
+#Begin multinomiial Results Section
 
 set.seed(13)
 red_train_full_fit <- fit_multinomial_regression(red_train, quality ~ 1 + ., ref_level = "8", trace = 1, itters = 300)
@@ -896,7 +904,11 @@ cmPlot(class.white, "white", pred_first = TRUE,
 "RF Classification of Quality for White Wines", axis.title.size = 20, axis.text.size = 25)
 ```
 
-## Comparison of Results: Red Wine
+## Discussion    
+
+Comparisons of the performance of the different modeling approaches are given below:
+
+#### Comparison of Results for Red Wine
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 #-----------------------------------------------------------------------------#
 #-----------------------------------------------------------------------------#
@@ -935,54 +947,34 @@ results.white['Linear Regression', ] <- c(linwacc, round(wklin$kappa,4), round(w
 
 results.red %>% rownames_to_column("Model") %>%
   arrange(desc(`Weighted Kappa`)) %>% 
-  kable(caption = "Comparison of Results for Red Wine", booktabs=T,digits = 4) %>%
+  kable(booktabs=T,digits = 4) %>%
   add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 6)) %>%
 kable_styling(latex_options = c("repeat_header", "scale_down"))
 
 #-----------------------------------------------------------------------------#
 ```
 
-## Comparison of Results: White Wine
+#### Comparison of Results: White Wine
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 # Print out comparison tables created above
 
 # White wine no groups
 results.white %>% rownames_to_column("Model")%>%
   arrange(desc(`Weighted Kappa`)) %>% 
-kable(caption = "Comparison of Results for White Wine", booktabs=T, digits = 4) %>%
+kable(booktabs=T, digits = 4) %>%
 add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 7)) %>%
 kable_styling(latex_options = c("repeat_header", "scale_down"))
 ```
 
-## Discussion: Random Forest    
-
-* Using random forests, we predicted expert wine quality ratings fairly accurately
-    + White wine
-        - Accuracy: `r res.white[1]`% 
-        - Weighted Kappa: `r wk.white`
-    + Red wine
-        - Accuracy: `r res.red[1]`% 
-        - Weighted Kappa: `r wk.red`
-* Using the proposed cutoffs from Landis and Koch, these weighted Kappa values suggest moderate to substantial agreement with the expert ratings
-
-## Discussion: Likelihood Based Approaches
-
-* Accuracies 10-15% lower and weighted kappas 0.1 to 0.2 lower
-* No clear winner 
-    + However, the linear model showed a tendency to predict the mean value. 
-    + The ial model had higher accuracy for lower and higher quality wines
-    + Accounting for the ordered nature of the ratings did not make a difference in predictions 
-
+  Using random forests, we predicted expert wine quality ratings fairly accurately. For white wines, the overall accuracy was `r res.white[1]`%, with a weighted kappa of `r wk.white`. For red wines, the accuracy was `r res.red[1]`% with weighted kappa `r wk.red`. Using the proposed cutoffs from Landis and Koch, these weighted kappa values suggest moderate to substantial agreement with the expert ratings. 
   
-## Discussion: Limitations and Future Directions 
-
-* We speculate some misclassification was due to failure to measure other important chemicals.
-* In the future, it would be interesting to characterize how individual chemicals relate to wine quality. 
-* There were only a small number of truly excellent wines (rating of 8 or higher) making it particularly difficult to predict these ratings. It would be worthwhile to examine whether various outlier detection algorithms are more suited to characterizing these wines than the approaches we took. 
-
-## Bottom Line
-
-Expert wine quality ratings can be predicted reasonably well using chemical components, but true wine connoisseurs are still better off consulting a sommelier. 
+  The likelihood approaches performed more poorly. Accuracies were 10-15% lower than random forest and weighted kappas were 0.1 to 0.2 lower. Moreover, among the likelihood based models, predictive performance was similar and no individual approach stood out as superior. Generally, the models showed a tendency to predict ratings towards the middle of the distribution, and, interestingly, accounting for the ordered nature of the ratings did not make a substantial difference in performance. Indeed, the multinomial was more accurate than the proportional odds and linear regression models for very low and high quality wines. Overall, the weighted kappas for the likelihood based models suggested moderate agreement with expert ratings.  
+  
+  Our project has limitations. We only had data on a small number of chemical components, so we speculate some misclassification was due to failure to include other important chemicals in our models. Likewise, our datasets included only small numbers of extremely poor and very excellent wines making these difficult to predict. In the future, it would be worthwhile to examine whether various outlier detection algorithms are more suited to characterizing these wines than the approaches we took. 
+  
+  In terms of variable selection for the likelihood based models, we saw only a minor improvement in predictive performance for the full compared to reduced models suggesting we may have overfit the data. A regularization method like LASSO or elastic net with cross-validation may have been useful. Additionally, our modeling focus was purely on prediction, not on characterizing how individual chemicals relate to wine quality. An interesting extension of this project would more thoroughly investigate those relationships. 
+  
+  In summary, we found wine quality ratings can be predicted reasonably well based on their chemical components. Random forests performed better than likelihood based models, but all methods demonstrated at least moderate agreement with expert ratings. Nevertheless, the predictions were far from perfect, so true wine connoisseurs are still better off consulting a sommelier. 
 
 ## References
 
