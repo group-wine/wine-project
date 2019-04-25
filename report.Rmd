@@ -289,11 +289,25 @@ Where $\alpha_j > \alpha_i$ for $j > i$, and $x^T_{i*}$ and $x^T_{i**}$ are subm
 
 #### Multinomial Regression
 
-* Response takes values in K classes
-* Model: $\log \frac{Pr(G = k | X = x)}{P(G = K | X = x)} = X\beta_k$ for $k = 1,...,(K-1)$
-* Predictions: $P(G = k | X = x) = \frac{\exp(X\beta_k)}{1 + \sum_{l = 1}^{K - 1}\exp(X\beta_l)},k = 1,..., K-1$
-* Considered 3 Models: All Predictors with Linear Terms, Reduced Model with Linear Terms, and Reduced Model with All Second Order Terms
-* Computational Challenges
+  We were also interested in testing if we could relax the ordinality assumption of our data and still retain predictive accuracy. Therefore, we decided to fit a multinomial regression model to our data as well.
+  Consider a random variable, Y, which takes on values in 1,...,K classes, with covariates X. The multinomial regression model has the form,
+  
+  $$\log \frac{P(Y = k | X = x)}{P(Y = K | X = x)} = X\beta_k,\ \ k = 1,...,(K-1)$$
+
+where $\beta_k$ is a $p \times 1$ vector of regression coefficient corresponding to level, k. Additionally, we apply the constraint that the probabilities sum to one, i.e. $\sum_{i = 1}^K P(Y = i | X = x) = 1$.
+  To get the probabilties we used for preduction, we solve the above system of equations given the above constraint:
+  
+  $$P(Y = k | X = x) = \frac{\exp(X\beta_k)}{1 + \sum_{l = 1}^{K - 1}\exp(X\beta_l)},k = 1,..., K-1 \\ 
+  P(Y = K | X = x) = \frac{1}{1 + \sum_{l = 1}^{K - 1}\exp(X\beta_l)}$$
+
+  For both red and white wine we fit three multinomial regression models:
+  
+* All Predictors with Linear Terms 
+* Reduced Model with Linear Terms
+* Reduced Model with All Second Order Terms
+
+where the coefficients in the reduced model - and how they were selected - are mentioned below. 
+  While we would have liked to fit models with higher order terms (quadratic terms, interactions), with our current implementation of multinomial regression - this was impractical. For a response variable taking on K classes, each new variable added to the model adds (K-1) coefficients, which made fitting a full second order model challenging without binning our response variable. In the future, this challenge could be overcome through programming in C++ or using a penalization for each row of the coefficent matrix (since you could not simply penalize each individual coefficient). 
 
 #### Random Forest
 
