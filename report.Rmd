@@ -300,6 +300,7 @@ where $\beta_k$ is a $p \times 1$ vector of regression coefficient corresponding
   $$P(Y = k | X = x) = \frac{\exp(X\beta_k)}{1 + \sum_{l = 1}^{K - 1}\exp(X\beta_l)},k = 1,..., K-1 \\ 
   P(Y = K | X = x) = \frac{1}{1 + \sum_{l = 1}^{K - 1}\exp(X\beta_l)}$$
 
+This notation was taken from Elements of Statistical Learning, 2009 (Hastie, Tibshirani, and Friedman). 
   For both red and white wine we fit three multinomial regression models:
   
 * All Predictors with Linear Terms 
@@ -712,24 +713,34 @@ cmPlot(red.prop.odds.table, "red", pred_first = T, title = "Proportional Odds Pr
 cmPlot(red.partial.prop.preds.table, "red", pred_first = T, title = "Partial Proportional Odds Predicted vs Observed (Full)", axis.title.size = 20, axis.text.size = 25)
 ```
 
-```{r eval=FALSE, message=F, include=FALSE, results='hide'}
+## Results: Multinomial Regression (Red Wine Quality Classification)
+
+Here we fit the multinomial regression models using the `fit_multinomial_regression` function from the `sommelieR` package. This chunk isn't evaluated for ease of compiling the final report - but obviously would be in a paper that was more concerned with reproducibility. 
+```{r echo=TRUE, eval = F, message=F, results='hide'}
 #Begin multinomiial Results Section
 
 set.seed(13)
+
+#Fit full model for red wine
 red_train_full_fit <- fit_multinomial_regression(red_train, quality ~ 1 + ., ref_level = "8", trace = 1, itters = 300)
 
+#Fit reduced linear for red wine
 red_train_reduced_linear_fit <- fit_multinomial_regression(red_train, quality ~ 1 + alcohol + volatile.acidity + total.sulfur.dioxide + pH + sulphates, ref_level = "8", trace = 1, itters = 300)
 
+#Fit reduced quadratic for red wine
 red_train_reduced_all_quad_fit <- fit_multinomial_regression(red_train, quality ~ 1 + alcohol + volatile.acidity + total.sulfur.dioxide + pH+ I(alcohol*alcohol) + I(volatile.acidity*volatile.acidity) + I(pH*pH) + I(total.sulfur.dioxide*total.sulfur.dioxide) + I(sulphates*sulphates) + (alcohol + volatile.acidity + total.sulfur.dioxide + pH + sulphates)^2, ref_level = "8", trace = 1, itters = 300)
 
+#Fit full linear for white wine
 white_train_full_fit <- fit_multinomial_regression(white_train, quality ~ 1 + ., ref_level = "8", trace = 1, itters = 300)
 
+#Fit reduced lienar for white wine
 white_train_linear_fit <- fit_multinomial_regression(white_train, quality ~ 1 + pH + volatile.acidity + residual.sugar + alcohol, ref_level = "8", trace = 1, itters = 300)
 
-#Takes a long long long time to run
+#Fit reduced with quadratic terms for white wine
+#Takes a long time to run
 white_train_quad_fit <- fit_multinomial_regression(white_train, quality ~ 1 + pH + volatile.acidity + residual.sugar + alcohol + (pH + volatile.acidity + residual.sugar + alcohol)^2 + I(pH*pH) + I(volatile.acidity*volatile.acidity) + I(residual.sugar*residual.sugar) + I(alcohol*alcohol), ref_level = "8", trace = 1, itters = 300)
 
-
+#Save models because they take a while to run
 saveRDS(red_train_full_fit, "multinomial_models/red_full_fit.rds")
 saveRDS(red_train_reduced_linear_fit, "multinomial_models/red_reduced_linear_fit.rds")
 saveRDS(red_train_reduced_all_quad_fit, "multinomial_models/red_reduced_all_quad_fit.rds")
@@ -738,7 +749,8 @@ saveRDS(white_train_linear_fit, "multinomial_models/white_reduced_linear_fit.rds
 saveRDS(white_train_quad_fit, "multinomial_models/white_reduced_quad_fit.rds")
 ```
 
-```{r include=FALSE, message=F, warning=F}
+
+```{r message=F, include=FALSE, results='hide'}
 red_train_full_fit <- readRDS("multinomial_models/red_full_fit.rds")
 red_train_reduced_linear_fit <- readRDS("multinomial_models/red_reduced_linear_fit.rds")
 red_train_reduced_all_quad_fit <- readRDS("multinomial_models/red_reduced_all_quad_fit.rds")
@@ -747,8 +759,8 @@ white_train_linear_fit <- readRDS("multinomial_models/white_reduced_linear_fit.r
 white_train_quad_fit <- readRDS("multinomial_models/white_reduced_quad_fit.rds")
 ```
 
-
-```{r message=FALSE, warning=FALSE, include=FALSE}
+Here we fit predictions on the test set using the `predict_multinomial` function from the `sommelieR` package. 
+```{r echo=TRUE, message=F, results='hide'}
 #Fit predictions
 red_test_full_preds <- predict_multinomial(red_train_full_fit, red_test)
 red_test_reduced_linear_preds <- predict_multinomial(red_train_reduced_linear_fit, red_test)
@@ -759,8 +771,8 @@ white_test_linear_preds <- predict_multinomial(white_train_linear_fit,
 white_test_quad_preds <- predict_multinomial(white_train_quad_fit, white_test)
 ```
 
-## Results: Multinomial Regression (Red Wine Quality Classification)
-```{r message=FALSE, warning=FALSE, echo=F}
+And here we use a convenient helper function `pred_summary_stats` to assemble our final table. It's from the `sommelieR` package - soon to be on CRAN.
+```{r echo=TRUE, message=FALSE, warning=FALSE, results='hide'}
 multinomial_red_results <- bind_rows(
   pred_summary_stats(red_test_full_preds, red_test$quality, "Full Model (Linear Terms)"),
   pred_summary_stats(red_test_reduced_linear_preds, red_test$quality, "Reduced Model (Linear Terms)"),
@@ -779,7 +791,8 @@ multinomial_best_red_model_results <- multinomial_red_results %>% slice(1) %>%
   select(-Model)
 ```
 
-## Results: Multinomial Regression - Full Model Confusion Matrix (Red Wine)
+We see from the above table that the full model with linear predictors has the best weighted kappa of all considered multinomial regression models for red wine. It is our best model and will represent multinomial regression in the final comparison. Its confusion matrix is visualized below:
+
 ```{r, echo=F, warning=F, message = F, echo=F, fig.align='center'}
 multinom_red_best_cm <- confusionMatrix(as.factor(red_test_full_preds), as.factor(red_test$quality))$table %>% 
   as.data.frame()
@@ -789,7 +802,8 @@ cmPlot(multinom_red_best_cm, "red", pred_first = T, title = "Multinomial Regress
 ```
 
 ## Results: Multinomial Regression (White Wine Quality Classification)
-```{r message=FALSE, warning=FALSE,echo=F}
+The same functions were again used to construct the table:
+```{r echo=TRUE, message=FALSE, warning=FALSE}
 multinomial_white_results <- bind_rows(
   pred_summary_stats(white_test_full_preds, white_test$quality, "Full Model (Linear Terms)"),
   pred_summary_stats(white_test_linear_preds, white_test$quality, "Reduced Model (Linear Terms)"),
@@ -807,6 +821,8 @@ multinomial_white_best_model_results <- multinomial_white_results %>%
   slice(1) %>% 
   select(-Model)
 ```
+
+We see from the above table that the full model with linear predictors has the best weighted kappa of all considered multinomial regression models for white wine. It is our best model and will represent multinomial regression in the final comparison for white wines. Its confusion matrix is visualized below:
 
 ## Results: Multinomial Regression - Full Model Confusion Matrix (White Wine)
 ```{r, echo=F, warning=F, message = F, fig.align='center'}
@@ -970,13 +986,15 @@ kable_styling(latex_options = c("repeat_header", "scale_down"))
   
   Our project has limitations. We only had data on a small number of chemical components, so we speculate some misclassification was due to failure to include other important chemicals in our models. Likewise, our datasets included only small numbers of extremely poor and very excellent wines making these difficult to predict. In the future, it would be worthwhile to examine whether various outlier detection algorithms are more suited to characterizing these wines than the approaches we took. 
   
-  In terms of variable selection for the likelihood based models, we saw only a minor improvement in predictive performance for the full compared to reduced models suggesting we may have overfit the data. A regularization method like LASSO or elastic net with cross-validation may have been useful. Additionally, our modeling focus was purely on prediction, not on characterizing how individual chemicals relate to wine quality. An interesting extension of this project would more thoroughly investigate those relationships. 
+  In terms of variable selection for the likelihood based models, we saw only a minor improvement in predictive performance for the full compared to reduced models suggesting we may have overfit the data. A regularization method like LASSO or elastic net with cross-validation may have been useful. However, it is somewhat unclear how best to implement a penalization method for the partial proportional odds models and the multinomial regression models - since each coefficient for a given class and variable is related to the other coefficients for a class. Therefore, some sort of grouped variable selection method would need to be implemented for these models. Additionally, our modeling focus was purely on prediction, not on characterizing how individual chemicals relate to wine quality. An interesting extension of this project would more thoroughly investigate those relationships. 
   
   In summary, we found wine quality ratings can be predicted reasonably well based on their chemical components. Random forests performed better than likelihood based models, but all methods demonstrated at least moderate agreement with expert ratings. Nevertheless, the predictions were far from perfect, so true wine connoisseurs are still better off consulting a sommelier. 
 
 ## References
 
 Landis JR, Koch GG. The measurement of observer agreement for categorical data. Biometrics. 1977 Mar;33(1):159-74.
+
+Hastie, T., Tibshirani, R., & Friedman, J. H. (2009). The elements of statistical learning: data mining, inference, and prediction. 2nd ed. New York: Springer.
 
 
 
