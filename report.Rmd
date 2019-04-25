@@ -1,7 +1,7 @@
 ---
 title: "sommelieR"
 author: "Seoyoon Cho, Paloma Hauser, Taylor Lagler, Mike Nodzenski, Bryce Rowland"
-date: "4/24/2019"
+date: "`r format(Sys.time(), '%m/%d/%Y')`"
 output: html_document
 header-includes:
 - \usepackage{booktabs}
@@ -27,7 +27,6 @@ knitr::include_graphics("images/sommelieR.jpg")
 ## Project Aim
 
 To determine how accurately expert wine quality ratings can be predicted using a set of easily measured chemical components.
-
 
 ```{r loadpackage, include = F}
 # create the datasets for training and testing for the group project
@@ -59,17 +58,13 @@ data("white_train")
 
 ## Data
 
-* 2 datasets of  expert quality ratings of red and white Vinho Verde wines 
-    + source: http://archive.ics.uci.edu/ml/datasets/wine+quality
-    + `r nrow(red_test) + nrow(red_train)` red wines 
-    + `r nrow(white_test) + nrow(white_train)` white wines 
-* Outcome variable: wine quality
-    + ordinal variable theoretically ranging from 0-10
-        - Observed ratings range from 3-9 
-    + 0 is poor, 10 is excellent 
-    + classes are unbalanced
-* Predictor variables: 11 physiochemical wine components:
-    + fixed acidity, volatile acidity, citric acid, residual sugar, chlorides, free sulfur dioxide, total sulfur dioxide, density, pH, sulphates, alcohol
+Two datasets of expert quality ratings of red and white Vinho Verde wines were used. The data is obtained from  http://archive.ics.uci.edu/ml/datasets/wine+quality. There are total of `r nrow(red_test) + nrow(red_train)` red wines and `r nrow(white_test) + nrow(white_train)` white wines in the two datasets.
+
+The outcome variable is wine quality. This variable is an ordinal variable theoretically ranging from 0-10. However, the observed ratings only range from 3-9, where 0 indicates poor quality and 10 is for excellent quality. The data is highly unbalanced across quality classes.
+
+Predictor variables are 11 physiochemical wine components: fixed acidity, volatile acidity, citric acid, residual sugar, chlorides, free sulfur dioxide, total sulfur dioxide, density, pH, sulphates, and alcohol.
+
+Below are the boxplots showing how each predictors are distributed across quality for red and white wine datasets.
 
 
 ```{r setup, include = F}
@@ -183,7 +178,7 @@ pred_summary_stats <- function(preds, true_values, model){
 
 ```
 
-## Looking At the Red Wine Data
+<!--## Looking At the Red Wine Data-->
 ```{r red.boxplots, echo=FALSE, warning=FALSE, fig.width=9, fig.height=6, fig.align='center'}
 # red wine
 grid.arrange(
@@ -212,7 +207,7 @@ grid.arrange(
 )
 ```
 
-## Looking At the White Wine Data
+<!--## Looking At the White Wine Data-->
 ```{r white.boxplots, echo=FALSE, warning=FALSE, fig.width=9, fig.height=6, fig.align='center'}
 # white wine
 grid.arrange(
@@ -241,8 +236,9 @@ grid.arrange(
 )
 ```
 
+Below plots show the correlation among the 11 variables for each red and white wine datasets, respectively. Here, the darker the blue, the more positively the variables are correlated and the darker the red, the more negatively the variables are correlated.
 
-## Correlations
+<!--## Correlations-->
 ```{r correlations, echo=FALSE, fig.align='left', message=FALSE, warning=FALSE, out.width='80%'}
 par(mfrow=c(1,2))
 # correlations and p-values by variable pairs
@@ -262,23 +258,22 @@ corrplot(rcor_white$r, type="upper", order="hclust", tl.col = "black",
 
 ## Methods
 
-* The red and white wine datasets were split into training and testing sets
-    + 80% of available data sampled for training models
-    + Remaining 20% used to evaluate accuracy
-    + Relative frequencies of quality ratings in full dataset were preserved in training and testing data 
-* Modeling Approach
-    + Machine learning
-        - Random forest classification of quality ratings 
-    + Likelihood based 
-        - linear regression 
-        - partial proportional odds model 
-        - multinoial model 
+#### Data processing
 
-#### Linear Regression 
+For the analysis, the red and white wine datasets were split into training and testing sets. The training data was sampled as 80% of the total available data and the remaining 20% was used as a testing data. We had training and test datasets for each red and white wine. The training data was used to train the model and the test data was used to evaluate the prediction accuracy of the model. Since the quality variable was highly unbalanced in the full dataset, the relative frequencies of this variable were preserved in both training and test data.
 
-* $Z = X^T \beta + \epsilon$, where $\epsilon\sim N(0,\sigma^2 I)$
-* $\hat\beta = (X^T X)^{-1}X^T Z$
-* Predicted classification: The nearest integer to the predicted mean rating 
+#### Modeling Approach 
+
+We modeled wine quality ratings using the random forest machine learning method and three likelihood based models: linear, partial proportional odds, and multinomial regression. The details of this models are given below:
+
+#### Linear Regression
+
+Since the observed wine ratings were integers, it was unclear whether rating should be considered a continuous or ordinal random variable. As an initial step, we assumed the ratings were continuous and fit an OLS linear regression model as follows:
+
+$$Z = X^T \beta + \epsilon,\ \text{where}\  \epsilon\sim N(0,\sigma^2 I)$$
+where $Z$ is the response variable, quality, $X$ is the design matrix with predictor variables, $\beta$ are the regression coefficients, and we assume the response follows normal distribution with the distribution assumption for $\epsilon$. It is well known that the least squares estimate of $\beta$ is
+$$\hat\beta = (X^T X)^{-1}X^T Z.$$
+Since the predicted value of a linear model is continuous but the quality ratings were integers, we rounded the predicted linear regression values to the nearest integer to obtain the final predicted quality rating.
 
 #### Partial Proportional Odds Models 
 
@@ -305,30 +300,19 @@ Where $\alpha_j > \alpha_i$ for $j > i$, and $x^T_{i*}$ and $x^T_{i**}$ are subm
 * Ensembles of decision trees which are built by bootstrapping the observations
 * Final prediction is made by a majority vote of the ensemble of trees
 
-
 #### Variable Selection
 
-* Random Forest: all physiochemical variables included
-* Likelihood based models:
-    + Fit the full model and hypothesized that we could find a reduced model. 
-    + Determined by correlations between predictors and OLS best subset.
-    + Covariates for reduced model:
-        - red wine: volatile acidity, total sulfur dioxide, pH, alcohol, sulphates
-        - white wine: pH, volatile_acidity, residual_sugar, alcohol
-    
+For the random forest models, we used all 11 physiochemical variables as predictors. For the likelihood based models, we considered full and reduced models. The full models for both red and white wines included all 11 physiochemical variables. The variables in the reduced models were determined by looking at the correlations between predictors and using best subsets based on OLS regression. The covariates selected for the red model were volatile acidity, total sulfur dioxide, pH, alcohol, and sulphates. The covariates selected for the white model were pH, volatile_acidity, residual_sugar, and alcohol. 
+
 #### Model Evaluation 
 
-We compared models on the following metrics:
-
-* Accuracy
-    + Correct Classifications/Total 
-* Kappa 
-* Weighted Kappa - used to select the final model
-    + A more useful version of Kappa for data with inherent ordering that penalizes misclassifications proportional to the distance from the true category.
-    + For instance, when the true quality rating is 4, a prediction of 7 will be penalized more severely than a prediction of 5. 
+We compared the four models on overall accuracy (correct predictions/total), kappa, and weighted kappa. Kappa is a commonly used statistic for capturing how well the classification is done compared to a 50% random chance classification. Weighted kappa is an extension of kappa that is a more useful for data with inherent ordering since it penalizes misclassifications proportional to the distance from the true category. For instance, when the true quality rating is 4, a prediction of 7 will be penalized more severely than a prediction of 5. Since our outcome variable, quality, is ordered, we used the weighted Kappa to select the final model.
   
 ## Results: Linear Model 
-```{r redlinplot, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE}
+
+The predictive performance of the full and reduced linear regression models on the testing data are given below: 
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 lllin = function(color,full=TRUE) {
   if (color=='red') {
     beta = c('volatile.acidity', 'total.sulfur.dioxide','pH','alcohol','sulphates')
@@ -416,20 +400,20 @@ lmresults[1,] = c(linracc, round(rklin$kappa,4), round(rklin$weighted.kappa,4),l
 lmresults[4,] = c(linwfacc, round(wfklin$kappa,4), round(wfklin$weighted.kappa,4),linwfpred)
 lmresults[3,] = c(linwacc, round(wklin$kappa,4), round(wklin$weighted.kappa,4),linwpred)
 
-kable(lmresults, "latex", caption = "Comparison of Full and Reduced Linear Regression Models for Red and White Wine Quality", booktabs=T,digits = 4) %>%
-add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 6)) %>%
+kable(lmresults, booktabs=T,digits = 4) %>%
+add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 7)) %>%
 kable_styling(latex_options = c("repeat_header", "scale_down"))
 
 ```
 
-## Results: Linear Model (Red Wine)
+Below is a visualization of the confusion matrix for red wine. We can see that the linear model tends to predict most of the quality towards the mean value since the model captures the population mean and also the data is highly unbalanced with most of the data concentrated around the 5 and 6 quality ratings. 
 ```{r, echo=F, fig.align='center'}
 # classification results as a plot
 cmPlot(linrclass, "red", pred_first = TRUE,
        "Linear Model Classification of Quality for Red Wines", axis.title.size = 20, axis.text.size = 25)
 ```
 
-## Results: Linear Model (White Wine)
+This concentration towards the mean trend is more distinct with the white wine, where most of the prediction is 6.
 ```{r whitelinplot, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE}
 cmPlot(linwclass, "white", pred_first = TRUE,
       "Linear Model Classification of Quality for White Wines", axis.title.size = 20, axis.text.size = 25)
