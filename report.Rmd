@@ -326,7 +326,7 @@ We compared the four models on overall accuracy (correct predictions/total), kap
 
 The predictive performance of the full and reduced linear regression models on the testing data are given below: 
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
+```{r, echo=TRUE, message=FALSE, warning=FALSE}
 lllin = function(color,full=TRUE) {
   if (color=='red') {
     beta = c('volatile.acidity', 'total.sulfur.dioxide','pH','alcohol','sulphates')
