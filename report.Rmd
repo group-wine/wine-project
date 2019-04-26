@@ -312,8 +312,7 @@ where the coefficients in the reduced model - and how they were selected - are m
 
 #### Random Forest
 
-* Ensembles of decision trees which are built by bootstrapping the observations
-* Final prediction is made by a majority vote of the ensemble of trees
+For a machine learning approach, we fit random forest. Using the standard implementation in the *caret* package, random forest constructs emsembles of decision trees which are built by bootstrapping the observations. The final prediction/classification is then made by a majority vote of the ensemble of trees.
 
 #### Variable Selection
 
@@ -834,6 +833,7 @@ cmPlot(multinom_white_best_cm, "white", pred_first = T, title = "Multinomial Reg
 ```
 
 ## Results: Random Forest
+The results of the random forest model for red wine and white wine are displayed in the table below. We find that the random forest has decent prediction accuracy, but in each case fails to classify any wines into the lowest or highest quality cateogry.
 ```{r red.rf, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE}
 #source("./R/cmPlot_function.R") # required to plot CMs
 # train random forest
@@ -894,7 +894,8 @@ add_header_above(c(" ", "Overall Results" = 3, "Percent Correct by Category" = 7
 kable_styling(latex_options = c("repeat_header", "scale_down"))
 ```
 
-## Results:  Random Forest (Variable Importance)
+Below are plots of the mean decrease gini values demonstrating varible importance in each of the red and white wine random forest models. In both cases, the alcohol content's mean decrease gini value is indicative of high variable importance.
+
 ```{r varimp_rf, echo=FALSE, fig.align='center', message=FALSE, warning=FALSE, out.width='50%'}
 red.imp <- fit.red$finalModel$importance
 white.imp <- fit.white$finalModel$importance
@@ -903,7 +904,7 @@ dotplot(sort(red.imp[,1]), xlab="Mean Decrease Gini", main="Variable Importance 
 dotplot(sort(white.imp[,1]), xlab="Mean Decrease Gini", main="Variable Importance - White Wine")
 ```
 
-## Results: Random Forest (Red Wine)
+The confusion matrices are visualized below:
 
 ```{r, echo=F, fig.align='center'}
 # classification results as a plot
@@ -911,7 +912,6 @@ cmPlot(class.red, "red", pred_first = TRUE,
 "RF Classification of Quality for Red Wines", axis.title.size = 20, axis.text.size = 25)
 ```
 
-## Results: Random Forest (White Wine)
 
 ```{r white.rf, fig.align='center', echo=FALSE, message=FALSE, warning=FALSE}
 cmPlot(class.white, "white", pred_first = TRUE,
